@@ -1,6 +1,6 @@
 # FinFolio — User Guide
 
-FinFolio is a privacy-first personal finance desktop app for Indian investors. All data is stored locally on your device in an encrypted database — nothing is ever sent to the cloud.
+FinFolio is a privacy-first personal finance desktop app for Indian investors. All data is stored locally on your device — nothing is ever sent to the cloud.
 
 ---
 
@@ -9,17 +9,24 @@ FinFolio is a privacy-first personal finance desktop app for Indian investors. A
 1. [Getting Started](#1-getting-started)
 2. [Dashboard](#2-dashboard)
 3. [Portfolio](#3-portfolio)
-4. [Transactions](#4-transactions)
-5. [Liabilities](#5-liabilities)
-6. [Income & Expenses](#6-income--expenses)
-7. [Data Sources](#7-data-sources)
-8. [Reports](#8-reports)
-9. [Settings](#9-settings)
-10. [Security & Privacy](#10-security--privacy)
+4. [Goals](#4-goals)
+5. [Transactions](#5-transactions)
+6. [Liabilities](#6-liabilities)
+7. [Income & Expenses](#7-income--expenses)
+8. [Data Sources](#8-data-sources)
+9. [Reports](#9-reports)
+10. [Settings](#10-settings)
+11. [Security & Privacy](#11-security--privacy)
 
 ---
 
 ## 1. Getting Started
+
+### Installation
+
+1. Download `FinFolio_0.1.0_x64-setup.exe` from the link shared with you.
+2. Double-click the installer and follow the steps.
+3. If Windows shows a blue **"Windows protected your PC"** warning, click **More info → Run anyway**. This is expected for unsigned personal software.
 
 ### First Launch — Set Master Password
 
@@ -29,7 +36,7 @@ When you open FinFolio for the first time you will see the **Setup** screen.
 2. Re-enter it to confirm.
 3. Click **Set Password**.
 
-> Your master password encrypts your database. Write it down and store it safely — it cannot be recovered if forgotten.
+> Your master password protects your database. Write it down and store it safely — it cannot be recovered if forgotten.
 
 ### Unlocking the App
 
@@ -46,14 +53,15 @@ The left sidebar contains all main sections:
 |---|---|---|
 | Home | Dashboard | Net worth overview and market pulse |
 | Briefcase | Portfolio | Holdings across all 8 asset classes |
+| Flag | Goals | Financial goals with progress tracking |
 | List | Transactions | Full transaction log |
 | Credit Card | Liabilities | Loans and credit cards |
 | Wallet | Income & Expenses | Budget tracking and category trends |
-| Database | Data Sources | Price refresh and market indices |
+| Database | Data Sources | Import from Zerodha / MF Central + price refresh |
 | Chart | Reports | Net worth history and capital gains |
-| Cog | Settings | Security, backup, and preferences |
+| Cog | Settings | Security, backup, diagnostics, and preferences |
 
-Click the **≡ / ×** button at the top of the sidebar to collapse or expand it. Collapsed mode shows only icons.
+Click the **≡ / ×** button at the top of the sidebar to collapse or expand it. Collapsed mode shows only icons with tooltips on hover.
 
 Click **Lock App** at the bottom of the sidebar to lock immediately.
 
@@ -137,6 +145,8 @@ Tracks your MF holdings by folio.
 | Growth Option | Toggle for Growth vs Dividend |
 
 **Current NAV** is updated via Data Sources → Refresh NAVs.
+
+**Tip:** Use the MF Central CAS import (see [Data Sources](#8-data-sources)) to populate all your MF holdings automatically with correct ISINs and Avg NAV.
 
 #### SIP Schedules
 
@@ -242,7 +252,45 @@ Tracks provident fund and pension accounts.
 
 ---
 
-## 4. Transactions
+## 4. Goals
+
+Set financial targets and track progress based on your total portfolio value.
+
+### Adding a Goal
+
+1. Click **Add Goal**.
+2. Fill in:
+   - **Goal Name** — e.g. "Buy a House", "Kids Education", "Retirement"
+   - **Category** — Home, Vehicle, Education, Retirement, Travel, Emergency Fund, or Other
+   - **Target Amount (₹)** — the amount you need to reach
+   - **Target Date** — when you want to achieve it
+   - **Notes** — optional details
+3. Click **Add Goal**.
+
+### How Progress Is Calculated
+
+```
+Progress = Total Portfolio Value ÷ Target Amount × 100
+```
+
+All goals use the same number — your total net worth (all assets combined). This represents your overall financial progress toward each target.
+
+### Goal Cards
+
+Each goal appears as a card showing:
+- Progress bar and percentage
+- Current portfolio value vs. target amount
+- Target date and months remaining
+- "Overdue" tag if the target date has passed
+- **Achieved** badge (green border) when your portfolio value reaches or exceeds the target
+
+### Editing and Deleting Goals
+
+Click the **pencil icon** on a goal card to edit any field. Click the **trash icon** to delete (with confirmation).
+
+---
+
+## 5. Transactions
 
 The Transactions view is a full log of all financial activity — income, expenses, investments, and more.
 
@@ -268,17 +316,13 @@ Use the filter bar above the table to narrow results:
 
 Click the **× button** to clear filters.
 
-### Editing and Deleting
-
-Click the pencil icon to edit any transaction. Click the trash icon to delete (with confirmation).
-
 ### Sign Convention
 
 Credit-type transactions (income, dividend, interest, sell, redemption, deposit) are shown with a **+** prefix. All others show **−**.
 
 ---
 
-## 5. Liabilities
+## 6. Liabilities
 
 Tracks your outstanding loans and credit card balances.
 
@@ -299,15 +343,13 @@ Tracks your outstanding loans and credit card balances.
    - **Disbursement Date** — when the loan was issued
    - **Next EMI Date** — optional
 
-#### Viewing the Amortization Schedule
+#### Viewing the Amortisation Schedule
 
-Click the **calendar icon** on any loan row to open the amortization schedule.
+Click the **calendar icon** on any loan row to open the amortisation schedule.
 
 The schedule shows:
-- **Summary row** — total months remaining, total payment, total interest, total principal
-- **Monthly breakdown table** — for each month: EMI paid, principal component, interest component, remaining balance
-
-This helps you understand exactly how much interest you are paying and when the loan will be paid off.
+- **Summary** — total months remaining, total payment, total interest payable
+- **Monthly table** — for each month: EMI, principal component, interest component, remaining balance
 
 ---
 
@@ -327,7 +369,7 @@ This helps you understand exactly how much interest you are paying and when the 
 
 ---
 
-## 6. Income & Expenses
+## 7. Income & Expenses
 
 Tracks your cash flow and compares spending against budgets.
 
@@ -347,69 +389,125 @@ Three cards at the top show:
 
 ### Monthly Trend Chart
 
-A 12-month bar chart showing income vs. expenses side by side. The most recent month is on the right. This helps identify spending trends over the year.
+A 12-month bar chart showing income vs. expenses side by side. The most recent month is on the right.
 
 ### Category Breakdown
 
-Two columns showing spending totals by category:
-
-- **Income** — Salary, Dividend, Interest, and other income sources
-- **Expenses** — Food, Rent, EMI, Travel, Medical, Utilities, Entertainment, etc.
+Two columns showing spending totals by category — Income and Expenses.
 
 ### Budget Manager
 
 Set monthly spending limits for any expense category.
 
 **To set a budget:**
-1. Click the **pencil icon** next to any category, or click **Set Budget** at the bottom.
-2. Select the category and enter the monthly limit (₹).
-3. Click **Save**.
+1. Click the **pencil icon** next to any category.
+2. Enter the monthly limit (₹) and click **Save**.
 
-Each category shows a **progress bar** (capped at 100%) indicating how much of the budget has been used. The bar turns amber when over 75% and red when the budget is exceeded.
+Each category shows a **progress bar** (capped at 100%). The bar turns amber above 75% and red when the budget is exceeded.
 
 ---
 
-## 7. Data Sources
+## 8. Data Sources
 
-Fetches live prices and NAVs from public APIs.
+Import holdings automatically and keep prices up to date.
 
-### Market Pulse
+---
 
-Displays **Nifty 50**, **Sensex**, and **USD/INR**.
+### 8.1 Zerodha Kite — Equity Import
 
-Click **Fetch** to pull the latest values from Yahoo Finance. If the network is unavailable the values show "—" without crashing.
+Automatically import your Zerodha equity holdings. Requires a free personal Kite Connect API key.
 
-### Price Refresh
+#### One-Time Setup
+
+1. Go to [kite.zerodha.com/developers](https://kite.zerodha.com/developers) and log in with your Zerodha account.
+2. Click **Create new app**.
+3. Set the **Redirect URL** to exactly: `http://127.0.0.1:7459`
+4. Copy your **API Key** and **API Secret**.
+5. In FinFolio → Data Sources → Zerodha: paste both and click **Save & Connect**.
+6. Your browser opens the Zerodha login page — log in. The app captures the token automatically and shows "Connected".
+
+> The API key and secret are stored only in your local database. They never leave your device.
+
+#### Daily Reconnect
+
+Zerodha access tokens expire at midnight IST every day. When the app shows "Token expired":
+
+1. Click **Reconnect**.
+2. Log in on the browser page that opens.
+3. The app returns to Connected status.
+
+#### Syncing Holdings
+
+Click **Sync Holdings** to pull your latest equity positions from Zerodha. Your Portfolio → Equity tab updates immediately with current quantities and prices.
+
+#### Disconnecting
+
+Click **Disconnect** to remove your API credentials and access token from the app.
+
+---
+
+### 8.2 MF Central CAS — Mutual Fund Import
+
+Import all your mutual fund holdings from an MF Central Consolidated Account Statement PDF.
+
+#### Why Two PDFs?
+
+MF Central offers two CAS formats:
+
+| PDF | Contains | Used for |
+|---|---|---|
+| **Summary CAS** | Invested value per folio | Calculating Avg NAV (cost basis) |
+| **Detailed CAS** | ISIN codes | Identifying each scheme uniquely |
+
+Uploading both together gives you the best of both: correct ISINs **and** correct Avg NAV, which means accurate P&L in your portfolio.
+
+#### Downloading the PDFs
+
+1. Go to [www.mfcentral.com](https://www.mfcentral.com) and log in.
+2. Navigate to **Consolidated Account Statement**.
+3. Download the **Summary** version — save as e.g. `CAS-Summary.pdf`.
+4. Download the **Detailed** version — save as e.g. `CAS-Detailed.pdf`.
+5. Note the password you set when generating each PDF (usually your PAN + date of birth).
+
+#### Importing
+
+1. In FinFolio → Data Sources → MF Central CAS:
+   - Upload the Summary PDF in the **left slot** (labelled "Summary").
+   - Upload the Detailed PDF in the **right slot** (labelled "Detailed").
+2. Enter your CAS PDF **password**.
+3. Click **Parse** — a preview table appears showing all holdings with ISIN and Avg NAV filled in.
+4. Review the data, then click **Import** to save to your portfolio.
+
+> If you only have one PDF, you can upload it alone in either slot. Summary-only: Avg NAV is correct, ISIN is blank. Detailed-only: ISIN is correct, Avg NAV is 0 (P&L will show ₹0).
+
+#### What Gets Imported
+
+- Scheme name, folio number, units, ISIN, Avg NAV, current NAV
+- Existing holdings for the same folio + scheme are updated (not duplicated)
+- An import log entry is created showing how many records were imported/skipped
+
+---
+
+### 8.3 Price Refresh
 
 #### Equity Prices
 
-Click **Refresh Prices** to update the `current_price` field for all your equity holdings.
+Click **Refresh Prices** to update the current price for all your equity holdings from Yahoo Finance.
 
-- NSE stocks are fetched as `{SYMBOL}.NS` from Yahoo Finance.
-- BSE stocks are fetched as `{SYMBOL}.BO`.
+- NSE stocks: fetched as `{SYMBOL}.NS`
+- BSE stocks: fetched as `{SYMBOL}.BO`
 
-The result shows how many holdings were updated and lists any failures (e.g. symbol not found).
+The result shows how many holdings updated and lists any failures.
 
 #### Mutual Fund NAVs
 
-Click **Refresh NAVs** to update the `current_nav` field for all your MF holdings.
+Click **Refresh NAVs** to update the current NAV for all your MF holdings from mfapi.in (free AMFI-sourced data).
 
-- Data is fetched from **mfapi.in** (free AMFI-sourced NAV data).
-- Requires the **Scheme Code** to be set on each MF holding.
-
-### Import (Coming Soon)
-
-Three import modes are planned but not yet available:
-
-| Mode | Description |
-|---|---|
-| CSV Import | Import transactions from any CSV with column mapping |
-| Bank Statement (PDF) | Auto-parse PDF statements from HDFC, SBI, ICICI, Axis |
-| MF Central CAS | Import consolidated account statement from MF Central |
+Requires the **Scheme Code** to be set on each MF holding. Holdings imported via CAS will have the scheme code populated automatically.
 
 ---
 
-## 8. Reports
+## 9. Reports
 
 Two report tabs: **Net Worth History** and **Capital Gains**.
 
@@ -431,27 +529,25 @@ The table below the chart lists every snapshot with exact values.
 
 #### Exporting to CSV
 
-Click **Export CSV** to save the net worth history to a `.csv` file. A save-file dialog will prompt you to choose the location.
+Click **Export CSV** to save the net worth history to a `.csv` file.
 
 ---
 
 ### Capital Gains
 
-Calculates realised gains from equity and mutual fund sell transactions using **FIFO or LIFO** cost basis.
+Calculates realised gains from equity and mutual fund sell transactions.
 
 #### Selecting the Financial Year and Method
 
-- **Financial Year** — dropdown lists the current FY and the previous 4 FYs (India FY: April 1 to March 31).
-- **Method** — FIFO (First In, First Out) or LIFO (Last In, First Out). FIFO is the default and is required for Indian tax computation.
+- **Financial Year** — India FY (April 1 to March 31). Lists current and previous 4 FYs.
+- **Method** — FIFO (default, required for Indian tax) or LIFO.
 
 #### Gain Summary Cards
 
-- **STCG (Short-Term Capital Gains)** — assets held for less than 12 months. Taxed at 20%.
-- **LTCG (Long-Term Capital Gains)** — assets held for 12 months or more. Taxed at 12.5% on gains exceeding ₹1.25 lakh (Budget 2024 rates).
+- **STCG (Short-Term Capital Gains)** — equity held < 12 months, debt < 36 months. Taxed at 20%.
+- **LTCG (Long-Term Capital Gains)** — held longer. Taxed at 12.5% on gains above ₹1.25 lakh (Budget 2024 rates).
 
-#### Tax Estimate Panel
-
-Below the summary cards, an estimated tax breakdown shows:
+#### Tax Estimate
 
 | Line | Calculation |
 |---|---|
@@ -460,32 +556,15 @@ Below the summary cards, an estimated tax breakdown shows:
 | LTCG Tax | Max(0, LTCG − ₹1,25,000) × 12.5% |
 | **Total Estimated Tax** | STCG Tax + LTCG Tax |
 
-> This is an indicative estimate. Surcharge, cess, and other income are not included. Consult a CA for your final ITR computation.
-
-#### Transactions Table
-
-Each row represents one matched lot:
-
-| Column | Meaning |
-|---|---|
-| Symbol | Stock or MF name |
-| Class | equity or mf |
-| Buy Date | Date the lot was purchased |
-| Sell Date | Date it was sold |
-| Days | Holding period in days |
-| Qty | Units matched in this lot |
-| Buy ₹ | Cost per unit |
-| Sell ₹ | Sale price per unit |
-| Gain / Loss | Net gain or loss for this lot |
-| Type | STCG or LTCG tag |
+> Indicative only. Surcharge, cess, and other income are not included. Consult a CA for your ITR.
 
 #### Exporting to CSV
 
-Click **Export CSV** to save the full transactions table (including all columns above) to a `.csv` file.
+Click **Export CSV** to save the full gain/loss transactions table.
 
 ---
 
-## 9. Settings
+## 10. Settings
 
 ### Security
 
@@ -495,21 +574,23 @@ Click **Export CSV** to save the full transactions table (including all columns 
 2. Enter and confirm the **new password** (minimum 8 characters).
 3. Click **Change Password**.
 
-The new password takes effect immediately.
-
 #### Auto-lock
-
-Choose how long the app stays unlocked when idle:
 
 | Option | Behaviour |
 |---|---|
-| 5 minutes | Locks after 5 minutes of no mouse/keyboard activity |
-| 15 minutes | Default — good balance for most users |
-| 30 minutes | Relaxed — suitable for trusted environments |
-| 1 hour | For long working sessions |
-| Disabled | App never auto-locks (not recommended) |
+| 5 minutes | Locks after 5 min of no mouse/keyboard activity |
+| 15 minutes | Default |
+| 30 minutes | Relaxed |
+| 1 hour | Long working sessions |
+| Disabled | Never auto-locks (not recommended) |
 
-Click **Save** after changing. The new timeout takes effect immediately.
+Click **Save** after changing.
+
+---
+
+### Appearance
+
+Switch between **Light**, **Dark**, and **System** (follows your Windows theme setting).
 
 ---
 
@@ -517,69 +598,82 @@ Click **Save** after changing. The new timeout takes effect immediately.
 
 #### Backup Database
 
-Click **Backup** to save a full copy of your database to any location you choose.
+Click **Backup** to save a full copy of your database.
 
 - A native save-file dialog opens.
-- The default filename includes today's date (e.g. `finfolio-backup-2026-06-25.db`).
-- Keep backups on an external drive or cloud storage folder.
+- Default filename includes today's date (e.g. `finfolio-backup-2026-06-25.db`).
+- Store backups on an external drive or cloud folder.
 
-> Recommended: take a backup before updating the app and after entering large amounts of data.
+> Recommended: back up before updating the app and after entering large amounts of data.
 
 #### Restore Database
 
 Click **Restore** to replace all current data with a previously saved backup.
 
 - You will see a confirmation prompt before proceeding.
-- After restoring, restart the app to ensure all views reflect the restored data.
-
-> Warning: Restore overwrites all current data. Take a fresh backup before restoring if you want to preserve current data.
+- Restart the app after restoring to ensure all views reflect the restored data.
 
 #### Wipe All Data
 
 Permanently deletes all portfolio, transaction, liability, budget, and snapshot records.
 
 1. Click **Wipe Data**.
-2. In the confirmation dialog, type `DELETE` exactly.
+2. Type `DELETE` exactly in the confirmation dialog.
 3. Click **Wipe All Data**.
 
-Your master password and app settings are not affected — only financial data is deleted.
+Your master password and app settings are not affected.
+
+---
+
+### Diagnostics
+
+FinFolio records usage events, errors, and page load times **locally on your device only**. Nothing is sent anywhere.
+
+| Panel | What it shows |
+|---|---|
+| Feature Usage | Which screens you visit and how often |
+| Recent Errors | Any app errors that occurred, with timestamp |
+| Performance | Average navigation time per screen |
+
+#### Exporting Diagnostics
+
+Click **Export** to save a JSON file containing all three data sets. You can attach this file to a feedback message and send it to the developer — this helps diagnose issues without sharing any financial data.
+
+#### Clearing Diagnostics
+
+Click **Clear** (confirm with the dialog) to delete all diagnostic data from your device. Financial data is unaffected.
 
 ---
 
 ### About
 
-Shows:
-- App name and version
-- Data directory path — where the database file is stored on your computer
-- Privacy statement
+Shows app name, version, data directory path, and privacy statement. The data directory path is where your `finfolio.db` database file lives.
 
 ---
 
-## 10. Security & Privacy
+## 11. Security & Privacy
 
-### Local-only Storage
+### Local-Only Storage
 
-All data is stored in a single SQLite database file on your computer. FinFolio makes no network requests except when you explicitly click a price refresh or market indices button.
+All data is stored in a single SQLite database file on your computer. FinFolio makes no network requests except when you explicitly click a price refresh, market indices fetch, or Zerodha sync button.
 
 ### Master Password
 
-The master password is required every time you open the app and after an auto-lock timeout. It is never stored in plain text or transmitted anywhere.
+Required every time you open the app and after an auto-lock timeout. Never stored in plain text or transmitted anywhere.
 
 ### Database Location
 
-The database file is located in your operating system's application data directory:
-
 | OS | Path |
 |---|---|
-| Windows | `C:\Users\<you>\AppData\Roaming\com.finfolio.app\` |
-| macOS | `~/Library/Application Support/com.finfolio.app/` |
-| Linux | `~/.local/share/com.finfolio.app/` |
+| Windows | `C:\Users\<you>\AppData\Roaming\com.rajkumar.finfolio\` |
+| macOS | `~/Library/Application Support/com.rajkumar.finfolio/` |
+| Linux | `~/.local/share/com.rajkumar.finfolio/` |
 
 The exact path is shown in **Settings → About → Data directory**.
 
 ### Backup Recommendation
 
-FinFolio does not automatically back up your data. Set a reminder to use **Settings → Backup Database** regularly, especially:
+FinFolio does not automatically back up your data. Set a reminder to use **Settings → Backup Database** regularly:
 - After adding new holdings
 - Before and after app updates
 - Monthly as a routine habit
@@ -591,17 +685,21 @@ FinFolio does not automatically back up your data. Set a reminder to use **Setti
 | Task | Where |
 |---|---|
 | Add a stock holding | Portfolio → Equity → Add Equity |
-| Add a mutual fund | Portfolio → Mutual Funds → Add MF |
+| Import equity from Zerodha | Data Sources → Zerodha → Sync Holdings |
+| Add a mutual fund manually | Portfolio → Mutual Funds → Add MF |
+| Import MF from MF Central CAS | Data Sources → MF Central CAS |
 | Set up a SIP | Portfolio → Mutual Funds → SIP Schedules → Add SIP |
+| Add a financial goal | Goals → Add Goal |
 | Record an expense | Transactions → Add Transaction (Type: expense) |
 | Add a home loan | Liabilities → Loans → Add Loan |
 | View loan EMI schedule | Liabilities → Loans → calendar icon on the row |
 | Set a monthly budget | Income & Expenses → Budget Manager → pencil icon |
-| Refresh stock prices | Data Sources → Equity Holdings → Refresh Prices |
-| Refresh MF NAV | Data Sources → Mutual Fund NAV → Refresh NAVs |
+| Refresh stock prices | Data Sources → Equity → Refresh Prices |
+| Refresh MF NAV | Data Sources → Mutual Funds → Refresh NAVs |
 | View capital gains | Reports → Capital Gains tab |
 | Export gains to CSV | Reports → Capital Gains → Export CSV |
 | Take net worth snapshot | Reports → Net Worth History → Take Snapshot |
 | Change password | Settings → Security → Change Password |
 | Back up data | Settings → Data Management → Backup |
+| Export diagnostics for feedback | Settings → Diagnostics → Export |
 | Lock the app | Sidebar → Lock App (bottom) |
