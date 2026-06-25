@@ -347,7 +347,7 @@ label { font-size: 0.875rem; font-weight: 500; }
 .data-row { display: flex; justify-content: space-between; align-items: center; gap: 1.5rem; padding: 0.25rem 0; }
 .data-row-info { display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; }
 .data-row-title { font-size: 0.95rem; font-weight: 500; }
-.data-row-desc { font-size: 0.82rem; line-height: 1.4; }
+.data-row-desc { font-size: 0.82rem; line-height: 1.4; color: var(--p-text-muted-color); }
 
 /* About grid */
 .about-grid {
@@ -358,7 +358,7 @@ label { font-size: 0.875rem; font-weight: 500; }
     font-size: 0.9rem;
     align-items: start;
 }
-.about-label { font-weight: 600; font-size: 0.82rem; padding-top: 0.05rem; }
+.about-label { font-weight: 600; font-size: 0.82rem; padding-top: 0.05rem; color: var(--p-text-muted-color); }
 .about-path { word-break: break-all; font-size: 0.83rem; font-family: monospace; }
 
 /* Wipe dialog */

@@ -104,6 +104,7 @@ async function submit() {
 .tagline {
     margin-top: 0.25rem;
     font-size: 0.9rem;
+    color: var(--p-text-muted-color);
 }
 
 h2 {
@@ -114,6 +115,7 @@ h2 {
 .hint {
     font-size: 0.85rem;
     margin-bottom: 1.5rem;
+    color: var(--p-text-muted-color);
 }
 
 .setup-form {

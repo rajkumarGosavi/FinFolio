@@ -179,14 +179,14 @@ function formatTime(iso: string | null): string {
 }
 .index-label { font-size: 0.78rem; font-weight: 500; color: var(--p-text-muted-color); }
 .index-value { font-size: 1.3rem; font-weight: 700; font-variant-numeric: tabular-nums; }
-.indices-updated { font-size: 0.78rem; margin: 0.5rem 0 0; }
+.indices-updated { font-size: 0.78rem; margin: 0.5rem 0 0; color: var(--p-text-muted-color); }
 
 /* Price refresh cards */
 .refresh-grid { display: flex; flex-direction: column; gap: 1rem; }
 .refresh-card { border-radius: 12px; padding: 1.25rem 1.5rem; background: var(--p-content-background); border: 1px solid var(--p-content-border-color); }
 .refresh-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
 .refresh-title { font-size: 1rem; font-weight: 600; display: block; margin-bottom: 0.35rem; }
-.refresh-desc { font-size: 0.83rem; margin: 0; }
+.refresh-desc { font-size: 0.83rem; margin: 0; color: var(--p-text-muted-color); }
 .refresh-result { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 0.75rem; }
 .error-list { margin: 0.25rem 0 0; padding-left: 1.25rem; font-size: 0.8rem; width: 100%; }
 .error-list li { margin-bottom: 0.2rem; }
