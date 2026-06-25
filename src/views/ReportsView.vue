@@ -92,10 +92,15 @@ const historyChartOptions = computed(() => ({
         },
     },
     scales: {
-        x: { ticks: { color: mutedColor.value }, grid: { color: gridColor.value } },
+        x: {
+            ticks: { color: mutedColor.value },
+            grid: { color: gridColor.value },
+            border: { color: gridColor.value },
+        },
         y: {
             ticks: { color: mutedColor.value, callback: (v: any) => formatCompact(Number(v)) },
             grid: { color: gridColor.value },
+            border: { color: gridColor.value },
         },
     },
 }));
