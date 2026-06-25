@@ -82,6 +82,7 @@ h2 {
 .hint {
     font-size: 0.875rem;
     margin-bottom: 1.5rem;
+    color: var(--p-text-muted-color);
 }
 
 .unlock-form {
