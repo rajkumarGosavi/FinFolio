@@ -141,6 +141,20 @@ pub fn run() {
             data_sources::commands::sync_zerodha_holdings,
             data_sources::commands::disconnect_zerodha,
             data_sources::commands::import_cas_mf,
+            // data sources – upstox
+            data_sources::commands::save_upstox_config,
+            data_sources::commands::get_upstox_status,
+            data_sources::commands::start_upstox_login,
+            data_sources::commands::sync_upstox_holdings,
+            data_sources::commands::disconnect_upstox,
+            // data sources – angel one
+            data_sources::commands::save_angel_config,
+            data_sources::commands::get_angel_status,
+            data_sources::commands::login_angel,
+            data_sources::commands::sync_angel_holdings,
+            data_sources::commands::disconnect_angel,
+            // data sources – groww
+            data_sources::commands::import_groww_csv,
             // goals
             goals::commands::list_goals,
             goals::commands::add_goal,
