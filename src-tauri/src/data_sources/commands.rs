@@ -2,6 +2,8 @@ use tauri::State;
 
 use crate::db::DbState;
 use crate::error::{AppError, Result};
+use super::angel_one;
+use super::upstox;
 use super::zerodha;
 
 // ─── CAS Import ──────────────────────────────────────────────
@@ -341,4 +343,504 @@ pub async fn sync_zerodha_holdings(state: State<'_, DbState>) -> Result<SyncResu
     }
 
     Ok(SyncResult { synced, errors: vec![] })
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ─── Upstox ──────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpstoxStatus {
+    pub has_config: bool,
+    pub is_connected: bool,
+    pub token_date: Option<String>,
+}
+
+#[tauri::command]
+pub fn save_upstox_config(
+    api_key: String,
+    api_secret: String,
+    state: State<DbState>,
+) -> Result<()> {
+    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    conn.execute(
+        "INSERT INTO app_settings (key, value) VALUES ('upstox_api_key', ?1)
+         ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+        [&api_key],
+    )?;
+    conn.execute(
+        "INSERT INTO app_settings (key, value) VALUES ('upstox_api_secret', ?1)
+         ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+        [&api_secret],
+    )?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn get_upstox_status(state: State<DbState>) -> Result<UpstoxStatus> {
+    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+
+    let api_key: Option<String> = conn
+        .query_row(
+            "SELECT value FROM app_settings WHERE key='upstox_api_key'",
+            [],
+            |r| r.get(0),
+        )
+        .ok();
+
+    let api_secret: Option<String> = conn
+        .query_row(
+            "SELECT value FROM app_settings WHERE key='upstox_api_secret'",
+            [],
+            |r| r.get(0),
+        )
+        .ok();
+
+    let access_token: Option<String> = conn
+        .query_row(
+            "SELECT value FROM app_settings WHERE key='upstox_access_token'",
+            [],
+            |r| r.get(0),
+        )
+        .ok();
+
+    let token_date: Option<String> = conn
+        .query_row(
+            "SELECT value FROM app_settings WHERE key='upstox_token_date'",
+            [],
+            |r| r.get(0),
+        )
+        .ok();
+
+    let has_config = api_key.is_some() && api_secret.is_some();
+    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+    let is_connected = access_token.is_some() && token_date.as_deref() == Some(today.as_str());
+
+    Ok(UpstoxStatus { has_config, is_connected, token_date })
+}
+
+#[tauri::command]
+pub async fn start_upstox_login(
+    app: tauri::AppHandle,
+    state: State<'_, DbState>,
+) -> Result<()> {
+    // Read credentials (lock → read → release)
+    let (api_key, api_secret) = {
+        let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+        let api_key = conn
+            .query_row(
+                "SELECT value FROM app_settings WHERE key='upstox_api_key'",
+                [],
+                |r| r.get::<_, String>(0),
+            )
+            .map_err(|_| AppError::Validation("Upstox API key not configured".into()))?;
+        let api_secret = conn
+            .query_row(
+                "SELECT value FROM app_settings WHERE key='upstox_api_secret'",
+                [],
+                |r| r.get::<_, String>(0),
+            )
+            .map_err(|_| AppError::Validation("Upstox API secret not configured".into()))?;
+        (api_key, api_secret)
+    };
+
+    // Run OAuth flow — opens browser, waits for redirect, exchanges token
+    let access_token = upstox::run_oauth_flow(&api_key, &api_secret, &app).await?;
+
+    // Store token + today's date (lock → write → release)
+    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+    {
+        let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+        conn.execute(
+            "INSERT INTO app_settings (key, value) VALUES ('upstox_access_token', ?1)
+             ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+            [&access_token],
+        )?;
+        conn.execute(
+            "INSERT INTO app_settings (key, value) VALUES ('upstox_token_date', ?1)
+             ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+            [&today],
+        )?;
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn sync_upstox_holdings(state: State<'_, DbState>) -> Result<SyncResult> {
+    // Read credentials (lock → read → release)
+    let (api_key, access_token) = {
+        let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+        let api_key = conn
+            .query_row(
+                "SELECT value FROM app_settings WHERE key='upstox_api_key'",
+                [],
+                |r| r.get::<_, String>(0),
+            )
+            .map_err(|_| AppError::Validation("Upstox API key not configured".into()))?;
+        let access_token = conn
+            .query_row(
+                "SELECT value FROM app_settings WHERE key='upstox_access_token'",
+                [],
+                |r| r.get::<_, String>(0),
+            )
+            .map_err(|_| AppError::Validation("Not connected to Upstox. Please reconnect.".into()))?;
+        (api_key, access_token)
+    };
+
+    // Fetch from Upstox API (no lock held during HTTP)
+    let holdings = upstox::fetch_holdings(&api_key, &access_token).await?;
+    let synced = holdings.len() as i64;
+
+    // Write to DB (lock → write → release)
+    {
+        let mut conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+
+        conn.execute(
+            "INSERT OR IGNORE INTO accounts
+                 (name, type, provider, is_active, created_at, updated_at)
+             VALUES ('Upstox', 'broker', 'upstox', 1, datetime('now'), datetime('now'))",
+            [],
+        )?;
+
+        let account_id: i64 = conn.query_row(
+            "SELECT id FROM accounts WHERE provider='upstox'",
+            [],
+            |r| r.get(0),
+        )?;
+
+        let tx = conn.transaction()?;
+        tx.execute("DELETE FROM equity_holdings WHERE account_id=?1", [account_id])?;
+
+        let price_ts = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+
+        for h in &holdings {
+            tx.execute(
+                "INSERT INTO equity_holdings
+                     (account_id, isin, symbol, exchange, name,
+                      quantity, avg_buy_price, current_price, price_updated_at,
+                      created_at, updated_at)
+                 VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,datetime('now'),datetime('now'))",
+                rusqlite::params![
+                    account_id,
+                    h.isin,
+                    h.tradingsymbol,
+                    h.exchange,
+                    h.company_name.as_deref().unwrap_or(&h.tradingsymbol),
+                    h.quantity,
+                    h.average_price,
+                    h.last_price,
+                    price_ts,
+                ],
+            )?;
+        }
+
+        tx.commit()?;
+    }
+
+    Ok(SyncResult { synced, errors: vec![] })
+}
+
+#[tauri::command]
+pub fn disconnect_upstox(state: State<DbState>) -> Result<()> {
+    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    conn.execute(
+        "DELETE FROM app_settings WHERE key IN (
+            'upstox_api_key',
+            'upstox_api_secret',
+            'upstox_access_token',
+            'upstox_token_date'
+         )",
+        [],
+    )?;
+    Ok(())
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ─── Angel One ───────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AngelStatus {
+    pub has_config: bool,
+    pub is_connected: bool,
+    pub token_date: Option<String>,
+}
+
+#[tauri::command]
+pub fn save_angel_config(
+    api_key: String,
+    client_id: String,
+    state: State<DbState>,
+) -> Result<()> {
+    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    conn.execute(
+        "INSERT INTO app_settings (key, value) VALUES ('angel_api_key', ?1)
+         ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+        [&api_key],
+    )?;
+    conn.execute(
+        "INSERT INTO app_settings (key, value) VALUES ('angel_client_id', ?1)
+         ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+        [&client_id],
+    )?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn get_angel_status(state: State<DbState>) -> Result<AngelStatus> {
+    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+
+    let api_key: Option<String> = conn
+        .query_row(
+            "SELECT value FROM app_settings WHERE key='angel_api_key'",
+            [],
+            |r| r.get(0),
+        )
+        .ok();
+
+    let client_id: Option<String> = conn
+        .query_row(
+            "SELECT value FROM app_settings WHERE key='angel_client_id'",
+            [],
+            |r| r.get(0),
+        )
+        .ok();
+
+    let jwt_token: Option<String> = conn
+        .query_row(
+            "SELECT value FROM app_settings WHERE key='angel_jwt_token'",
+            [],
+            |r| r.get(0),
+        )
+        .ok();
+
+    let token_date: Option<String> = conn
+        .query_row(
+            "SELECT value FROM app_settings WHERE key='angel_token_date'",
+            [],
+            |r| r.get(0),
+        )
+        .ok();
+
+    let has_config = api_key.is_some() && client_id.is_some();
+    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+    let is_connected = jwt_token.is_some() && token_date.as_deref() == Some(today.as_str());
+
+    Ok(AngelStatus { has_config, is_connected, token_date })
+}
+
+#[tauri::command]
+pub async fn login_angel(
+    password: String,
+    totp: String,
+    state: State<'_, DbState>,
+) -> Result<()> {
+    // Read credentials (lock → read → release)
+    let (api_key, client_id) = {
+        let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+        let api_key = conn
+            .query_row(
+                "SELECT value FROM app_settings WHERE key='angel_api_key'",
+                [],
+                |r| r.get::<_, String>(0),
+            )
+            .map_err(|_| AppError::Validation("Angel One API key not configured".into()))?;
+        let client_id = conn
+            .query_row(
+                "SELECT value FROM app_settings WHERE key='angel_client_id'",
+                [],
+                |r| r.get::<_, String>(0),
+            )
+            .map_err(|_| AppError::Validation("Angel One client ID not configured".into()))?;
+        (api_key, client_id)
+    };
+
+    // Login via SmartAPI (no lock held during HTTP)
+    let jwt_token = angel_one::login(&api_key, &client_id, &password, &totp).await?;
+
+    // Store JWT + today's date (lock → write → release)
+    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+    {
+        let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+        conn.execute(
+            "INSERT INTO app_settings (key, value) VALUES ('angel_jwt_token', ?1)
+             ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+            [&jwt_token],
+        )?;
+        conn.execute(
+            "INSERT INTO app_settings (key, value) VALUES ('angel_token_date', ?1)
+             ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+            [&today],
+        )?;
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn sync_angel_holdings(state: State<'_, DbState>) -> Result<SyncResult> {
+    // Read credentials (lock → read → release)
+    let (api_key, jwt_token) = {
+        let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+        let api_key = conn
+            .query_row(
+                "SELECT value FROM app_settings WHERE key='angel_api_key'",
+                [],
+                |r| r.get::<_, String>(0),
+            )
+            .map_err(|_| AppError::Validation("Angel One API key not configured".into()))?;
+        let jwt_token = conn
+            .query_row(
+                "SELECT value FROM app_settings WHERE key='angel_jwt_token'",
+                [],
+                |r| r.get::<_, String>(0),
+            )
+            .map_err(|_| {
+                AppError::Validation("Not connected to Angel One. Please login again.".into())
+            })?;
+        (api_key, jwt_token)
+    };
+
+    // Fetch holdings (no lock held during HTTP)
+    let holdings = angel_one::fetch_holdings(&api_key, &jwt_token).await?;
+    let synced = holdings.len() as i64;
+
+    // Write to DB (lock → write → release)
+    {
+        let mut conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+
+        conn.execute(
+            "INSERT OR IGNORE INTO accounts
+                 (name, type, provider, is_active, created_at, updated_at)
+             VALUES ('Angel One', 'broker', 'angel_one', 1, datetime('now'), datetime('now'))",
+            [],
+        )?;
+
+        let account_id: i64 = conn.query_row(
+            "SELECT id FROM accounts WHERE provider='angel_one'",
+            [],
+            |r| r.get(0),
+        )?;
+
+        let tx = conn.transaction()?;
+        tx.execute("DELETE FROM equity_holdings WHERE account_id=?1", [account_id])?;
+
+        let price_ts = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+
+        for h in &holdings {
+            tx.execute(
+                "INSERT INTO equity_holdings
+                     (account_id, isin, symbol, exchange, name,
+                      quantity, avg_buy_price, current_price, price_updated_at,
+                      created_at, updated_at)
+                 VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,datetime('now'),datetime('now'))",
+                rusqlite::params![
+                    account_id,
+                    h.isin,
+                    h.tradingsymbol,
+                    h.exchange,
+                    h.tradingsymbol,
+                    h.quantity,
+                    h.average_price,
+                    h.ltp,
+                    price_ts,
+                ],
+            )?;
+        }
+
+        tx.commit()?;
+    }
+
+    Ok(SyncResult { synced, errors: vec![] })
+}
+
+#[tauri::command]
+pub fn disconnect_angel(state: State<DbState>) -> Result<()> {
+    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    conn.execute(
+        "DELETE FROM app_settings WHERE key IN (
+            'angel_api_key',
+            'angel_client_id',
+            'angel_jwt_token',
+            'angel_token_date'
+         )",
+        [],
+    )?;
+    Ok(())
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ─── Groww CSV Import ────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+
+#[derive(serde::Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct GrowwRow {
+    pub symbol: String,
+    pub isin: Option<String>,
+    pub quantity: f64,
+    pub avg_price: f64,
+    pub ltp: Option<f64>,
+    pub exchange: Option<String>,
+}
+
+#[tauri::command]
+pub fn import_groww_csv(rows: Vec<GrowwRow>, state: State<DbState>) -> Result<ImportResult> {
+    let mut conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+
+    // Ensure a Groww broker account exists
+    conn.execute(
+        "INSERT OR IGNORE INTO accounts
+             (name, type, provider, is_active, created_at, updated_at)
+         VALUES ('Groww', 'broker', 'groww', 1, datetime('now'), datetime('now'))",
+        [],
+    )?;
+
+    let account_id: i64 = conn.query_row(
+        "SELECT id FROM accounts WHERE provider='groww'",
+        [],
+        |r| r.get(0),
+    )?;
+
+    let tx = conn.transaction()?;
+    tx.execute("DELETE FROM equity_holdings WHERE account_id=?1", [account_id])?;
+
+    let price_ts = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+    let mut imported = 0i64;
+    let mut skipped = 0i64;
+
+    for row in &rows {
+        if row.quantity <= 0.0 || row.avg_price <= 0.0 {
+            skipped += 1;
+            continue;
+        }
+        let result = tx.execute(
+            "INSERT INTO equity_holdings
+                 (account_id, isin, symbol, exchange, name,
+                  quantity, avg_buy_price, current_price, price_updated_at,
+                  created_at, updated_at)
+             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,datetime('now'),datetime('now'))",
+            rusqlite::params![
+                account_id,
+                row.isin.as_deref().unwrap_or(""),
+                row.symbol,
+                row.exchange.as_deref().unwrap_or("NSE"),
+                row.symbol,
+                row.quantity,
+                row.avg_price,
+                row.ltp.unwrap_or(row.avg_price),
+                price_ts,
+            ],
+        );
+        match result {
+            Ok(_) => imported += 1,
+            Err(_) => skipped += 1,
+        }
+    }
+
+    tx.commit()?;
+    Ok(ImportResult { imported, skipped })
 }

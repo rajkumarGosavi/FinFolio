@@ -3,15 +3,146 @@ import { ref, onMounted } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { usePricesStore } from "@/stores/prices";
 import { useZerodhaStore } from "@/stores/zerodha";
+import { useUpstoxStore } from "@/stores/upstox";
+import { useAngelOneStore } from "@/stores/angel_one";
 import { parseCasPdf, mergeCasHoldings, type CasMfHolding } from "@/utils/casMfParser";
 import { useAnalytics } from "@/composables/useAnalytics";
 
 const store = usePricesStore();
 const zerodha = useZerodhaStore();
+const upstox = useUpstoxStore();
+const angelOne = useAngelOneStore();
 const { track } = useAnalytics();
 
+// ── Zerodha inputs ──────────────────────────────────────────────
 const apiKeyInput = ref("");
 const apiSecretInput = ref("");
+
+// ── Upstox inputs ───────────────────────────────────────────────
+const upstoxApiKey = ref("");
+const upstoxApiSecret = ref("");
+
+async function saveAndConnectUpstox() {
+    try {
+        await upstox.saveConfig(upstoxApiKey.value.trim(), upstoxApiSecret.value.trim());
+        upstoxApiSecret.value = "";
+        await upstox.connect();
+    } catch {
+        // error shown via upstox.error
+    }
+}
+
+// ── Angel One inputs ────────────────────────────────────────────
+const angelApiKey = ref("");
+const angelClientId = ref("");
+const angelPassword = ref("");
+const angelTotp = ref("");
+
+async function saveAngelConfig() {
+    try {
+        await angelOne.saveConfig(angelApiKey.value.trim(), angelClientId.value.trim());
+    } catch {
+        // error shown via angelOne.error
+    }
+}
+
+async function loginAngel() {
+    try {
+        await angelOne.login(angelPassword.value, angelTotp.value.trim());
+        angelPassword.value = "";
+        angelTotp.value = "";
+    } catch {
+        // error shown via angelOne.error
+    }
+}
+
+// ── Groww CSV ───────────────────────────────────────────────────
+interface GrowwRow {
+    symbol: string;
+    isin?: string;
+    quantity: number;
+    avgPrice: number;
+    ltp?: number;
+    exchange?: string;
+}
+
+const growwRows = ref<GrowwRow[]>([]);
+const growwPreview = ref<GrowwRow[]>([]);
+const growwImporting = ref(false);
+const growwImportResult = ref<{ imported: number; skipped: number } | null>(null);
+const growwError = ref<string | null>(null);
+
+function parseGrowwCsv(text: string): GrowwRow[] {
+    const lines = text.split('\n').filter(l => l.trim());
+    if (lines.length < 2) return [];
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/\s+/g, '_'));
+    const col = (names: string[]) => names.find(n => headers.includes(n)) ?? names[0];
+    const symbolIdx = headers.indexOf(col(['symbol', 'ticker', 'scrip']));
+    const isinIdx = headers.indexOf(col(['isin']));
+    const qtyIdx = headers.indexOf(col(['qty', 'quantity']));
+    const avgIdx = headers.indexOf(col(['avg_price', 'avg_cost', 'average_price', 'buy_price']));
+    const ltpIdx = headers.indexOf(col(['ltp', 'current_price', 'cmp']));
+    const exchIdx = headers.indexOf(col(['exchange', 'exch']));
+    return lines.slice(1).map(line => {
+        const cols = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+        return {
+            symbol: cols[symbolIdx] ?? '',
+            isin: isinIdx >= 0 ? cols[isinIdx] : undefined,
+            quantity: parseFloat(cols[qtyIdx]) || 0,
+            avgPrice: parseFloat(cols[avgIdx]) || 0,
+            ltp: ltpIdx >= 0 ? parseFloat(cols[ltpIdx]) : undefined,
+            exchange: exchIdx >= 0 ? cols[exchIdx] : undefined,
+        };
+    }).filter(r => r.symbol && r.quantity > 0 && r.avgPrice > 0);
+}
+
+function onGrowwFile(event: any) {
+    growwError.value = null;
+    growwImportResult.value = null;
+    growwRows.value = [];
+    growwPreview.value = [];
+    const file: File = event.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const text = e.target?.result as string;
+            const parsed = parseGrowwCsv(text);
+            if (parsed.length === 0) {
+                growwError.value = "No valid rows found. Check the CSV format.";
+                return;
+            }
+            growwRows.value = parsed;
+            growwPreview.value = parsed.slice(0, 5);
+        } catch (err: any) {
+            growwError.value = `Parse error: ${err?.message ?? err}`;
+        }
+    };
+    reader.readAsText(file);
+}
+
+async function importGroww() {
+    growwImporting.value = true;
+    growwError.value = null;
+    try {
+        const result = await invoke<{ imported: number; skipped: number }>("import_groww_csv", {
+            rows: growwRows.value.map(r => ({
+                symbol: r.symbol,
+                isin: r.isin,
+                quantity: r.quantity,
+                avgPrice: r.avgPrice,
+                ltp: r.ltp,
+                exchange: r.exchange,
+            })),
+        });
+        growwImportResult.value = result;
+        track("groww_import_completed", { imported: result.imported, skipped: result.skipped });
+    } catch (e: any) {
+        growwError.value = String(e?.message ?? e);
+    } finally {
+        growwImporting.value = false;
+    }
+}
 
 async function saveAndConnect() {
     try {
@@ -23,7 +154,11 @@ async function saveAndConnect() {
     }
 }
 
-onMounted(() => zerodha.fetchStatus());
+onMounted(() => {
+    zerodha.fetchStatus();
+    upstox.fetchStatus();
+    angelOne.fetchStatus();
+});
 
 // ── CAS import state ────────────────────────────────────────────
 const casOpen = ref(false);
@@ -260,6 +395,281 @@ function formatTime(iso: string | null): string {
                     <li v-for="err in zerodha.syncResult.errors" :key="err">{{ err }}</li>
                 </ul>
             </template>
+        </div>
+
+        <!-- ═══════════════════════════════════════════ Upstox ══ -->
+        <div class="section-header">
+            <h2>Upstox</h2>
+            <Tag v-if="upstox.status?.isConnected" value="Connected" severity="success" />
+            <Tag v-else-if="upstox.status?.hasConfig" value="Token Expired" severity="warn" />
+        </div>
+
+        <div class="zerodha-card">
+            <!-- Waiting for browser login -->
+            <div v-if="upstox.connectLoading" class="zerodha-connecting">
+                <ProgressSpinner style="width:1.75rem;height:1.75rem" />
+                <span>Waiting for browser login… You have up to 3 minutes.</span>
+            </div>
+
+            <!-- Setup: no credentials saved yet -->
+            <template v-else-if="!upstox.status?.hasConfig">
+                <ol class="setup-instructions">
+                    <li>
+                        Go to <strong>developer.upstox.com</strong> → My Apps → Create App
+                    </li>
+                    <li>
+                        Set the redirect URL to:
+                        <code class="redirect-url">http://127.0.0.1:7460</code>
+                    </li>
+                    <li>Copy the API Key and API Secret into the fields below</li>
+                </ol>
+                <div class="setup-form">
+                    <div class="field">
+                        <label>API Key</label>
+                        <InputText v-model="upstoxApiKey" placeholder="Your Upstox API Key" fluid />
+                    </div>
+                    <div class="field">
+                        <label>API Secret</label>
+                        <Password
+                            v-model="upstoxApiSecret"
+                            :feedback="false"
+                            toggleMask
+                            fluid
+                            placeholder="Your Upstox API Secret"
+                        />
+                    </div>
+                    <Message v-if="upstox.error" severity="error">{{ upstox.error }}</Message>
+                    <Button
+                        label="Save & Connect"
+                        icon="pi pi-sign-in"
+                        :disabled="!upstoxApiKey.trim() || !upstoxApiSecret.trim()"
+                        @click="saveAndConnectUpstox"
+                    />
+                </div>
+            </template>
+
+            <!-- Reconnect: credentials saved but token expired -->
+            <template v-else-if="!upstox.status?.isConnected">
+                <div class="reconnect-row">
+                    <div class="reconnect-info">
+                        <span class="reconnect-title">Access token expired</span>
+                        <span class="reconnect-desc">
+                            Upstox access tokens expire daily. Reconnect to continue syncing.
+                        </span>
+                        <span v-if="upstox.status?.tokenDate" class="token-date text-muted">
+                            Last connected: {{ upstox.status.tokenDate }}
+                        </span>
+                    </div>
+                    <div class="reconnect-btns">
+                        <Button label="Reconnect" icon="pi pi-sign-in" @click="upstox.connect()" />
+                        <Button label="Remove credentials" text size="small" @click="upstox.disconnect()" />
+                    </div>
+                </div>
+                <Message v-if="upstox.error" severity="error" class="mt-msg">{{ upstox.error }}</Message>
+            </template>
+
+            <!-- Connected -->
+            <template v-else>
+                <div class="sync-row">
+                    <div class="sync-info">
+                        <span class="sync-title">Upstox connected</span>
+                        <span class="sync-desc text-muted">
+                            Sync to import your latest holdings into the Portfolio tab.
+                        </span>
+                        <span v-if="upstox.syncResult" class="sync-result text-muted">
+                            Last sync: {{ upstox.syncResult.synced }} holding{{
+                                upstox.syncResult.synced !== 1 ? "s" : ""
+                            }} imported
+                        </span>
+                    </div>
+                    <div class="sync-btns">
+                        <Button
+                            label="Sync Holdings"
+                            icon="pi pi-refresh"
+                            :loading="upstox.syncLoading"
+                            @click="upstox.syncHoldings()"
+                        />
+                        <Button label="Disconnect" text size="small" @click="upstox.disconnect()" />
+                    </div>
+                </div>
+                <Message v-if="upstox.error" severity="error" class="mt-msg">{{ upstox.error }}</Message>
+            </template>
+        </div>
+
+        <!-- ══════════════════════════════════════════ Angel One ══ -->
+        <div class="section-header">
+            <h2>Angel One</h2>
+            <Tag v-if="angelOne.status?.isConnected" value="Connected" severity="success" />
+            <Tag v-else-if="angelOne.status?.hasConfig" value="Token Expired" severity="warn" />
+        </div>
+
+        <div class="zerodha-card">
+            <!-- Setup: no API key / client ID saved -->
+            <template v-if="!angelOne.status?.hasConfig">
+                <p class="reconnect-desc" style="margin:0 0 1rem">
+                    Angel One uses SmartAPI — no browser redirect. Enter your API Key and
+                    Client Code (your Angel One login ID), then login with password + TOTP
+                    each day.
+                </p>
+                <div class="setup-form">
+                    <div class="field">
+                        <label>API Key</label>
+                        <InputText v-model="angelApiKey" placeholder="SmartAPI API Key" fluid />
+                    </div>
+                    <div class="field">
+                        <label>Client Code</label>
+                        <InputText v-model="angelClientId" placeholder="Your Angel One Client Code" fluid />
+                    </div>
+                    <Message v-if="angelOne.error" severity="error">{{ angelOne.error }}</Message>
+                    <Button
+                        label="Save Config"
+                        icon="pi pi-save"
+                        :disabled="!angelApiKey.trim() || !angelClientId.trim()"
+                        @click="saveAngelConfig"
+                    />
+                </div>
+            </template>
+
+            <!-- Has config but no JWT / token expired — show login form -->
+            <template v-else-if="!angelOne.status?.isConnected">
+                <div class="reconnect-row">
+                    <div class="reconnect-info">
+                        <span class="reconnect-title">Login required</span>
+                        <span class="reconnect-desc">
+                            Angel One JWT tokens expire daily. Enter your password and TOTP to reconnect.
+                        </span>
+                        <span v-if="angelOne.status?.tokenDate" class="token-date text-muted">
+                            Last connected: {{ angelOne.status.tokenDate }}
+                        </span>
+                    </div>
+                </div>
+                <div class="setup-form" style="margin-top:1rem">
+                    <div class="field">
+                        <label>Password</label>
+                        <Password
+                            v-model="angelPassword"
+                            :feedback="false"
+                            toggleMask
+                            fluid
+                            placeholder="Angel One login password"
+                        />
+                    </div>
+                    <div class="field">
+                        <label>
+                            TOTP
+                            <span class="text-muted" style="font-weight:400"> — 6-digit OTP from your authenticator app</span>
+                        </label>
+                        <InputText v-model="angelTotp" placeholder="123456" maxlength="6" fluid />
+                    </div>
+                    <Message v-if="angelOne.error" severity="error">{{ angelOne.error }}</Message>
+                    <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+                        <Button
+                            label="Login"
+                            icon="pi pi-sign-in"
+                            :loading="angelOne.loginLoading"
+                            :disabled="!angelPassword || !angelTotp.trim()"
+                            @click="loginAngel"
+                        />
+                        <Button label="Remove credentials" text size="small" @click="angelOne.disconnect()" />
+                    </div>
+                </div>
+            </template>
+
+            <!-- Connected -->
+            <template v-else>
+                <div class="sync-row">
+                    <div class="sync-info">
+                        <span class="sync-title">Angel One connected</span>
+                        <span class="sync-desc text-muted">
+                            Sync to import your latest holdings. JWT expires daily — re-login tomorrow.
+                        </span>
+                        <span v-if="angelOne.syncResult" class="sync-result text-muted">
+                            Last sync: {{ angelOne.syncResult.synced }} holding{{
+                                angelOne.syncResult.synced !== 1 ? "s" : ""
+                            }} imported
+                        </span>
+                    </div>
+                    <div class="sync-btns">
+                        <Button
+                            label="Sync Holdings"
+                            icon="pi pi-refresh"
+                            :loading="angelOne.syncLoading"
+                            @click="angelOne.syncHoldings()"
+                        />
+                        <Button label="Disconnect" text size="small" @click="angelOne.disconnect()" />
+                    </div>
+                </div>
+                <Message v-if="angelOne.error" severity="error" class="mt-msg">{{ angelOne.error }}</Message>
+            </template>
+        </div>
+
+        <!-- ══════════════════════════════════════ Groww CSV Import ══ -->
+        <div class="section-header">
+            <h2>Groww <span style="font-weight:400;font-size:0.9rem">(CSV Import)</span></h2>
+        </div>
+
+        <div class="zerodha-card">
+            <ol class="setup-instructions">
+                <li>Open Groww App or Web → Portfolio → Export → Holdings CSV</li>
+                <li>Upload the downloaded CSV file below</li>
+            </ol>
+
+            <div class="setup-form">
+                <div class="field">
+                    <label>Holdings CSV</label>
+                    <FileUpload
+                        mode="basic"
+                        accept=".csv"
+                        :maxFileSize="5000000"
+                        chooseLabel="Choose CSV"
+                        customUpload
+                        auto
+                        @uploader="onGrowwFile"
+                    />
+                </div>
+
+                <!-- Preview table -->
+                <template v-if="growwPreview.length > 0">
+                    <p class="reconnect-desc" style="margin:0">
+                        Preview (first {{ growwPreview.length }} of {{ growwRows.length }} rows):
+                    </p>
+                    <DataTable :value="growwPreview" size="small" class="cas-table">
+                        <Column field="symbol" header="Symbol" style="width:130px" />
+                        <Column field="isin" header="ISIN" style="width:140px" />
+                        <Column field="quantity" header="Qty" style="width:80px" />
+                        <Column header="Avg Price" style="width:100px">
+                            <template #body="{ data }">
+                                ₹{{ data.avgPrice.toLocaleString("en-IN", { maximumFractionDigits: 2 }) }}
+                            </template>
+                        </Column>
+                        <Column header="LTP" style="width:100px">
+                            <template #body="{ data }">
+                                {{ data.ltp != null ? "₹" + data.ltp.toLocaleString("en-IN", { maximumFractionDigits: 2 }) : "—" }}
+                            </template>
+                        </Column>
+                        <Column field="exchange" header="Exchange" style="width:90px" />
+                    </DataTable>
+                </template>
+
+                <Message v-if="growwError" severity="error">{{ growwError }}</Message>
+
+                <div v-if="growwImportResult" class="refresh-result">
+                    <Tag :value="`✓ ${growwImportResult.imported} holdings imported`" severity="success" />
+                    <Tag
+                        v-if="growwImportResult.skipped > 0"
+                        :value="`${growwImportResult.skipped} skipped`"
+                        severity="secondary"
+                    />
+                </div>
+
+                <Button
+                    v-if="growwRows.length > 0"
+                    :label="`Import ${growwRows.length} Holdings`"
+                    icon="pi pi-upload"
+                    :loading="growwImporting"
+                    @click="importGroww"
+                />
+            </div>
         </div>
 
         <!-- Market Pulse -->
