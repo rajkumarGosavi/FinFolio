@@ -327,7 +327,6 @@ onMounted(() => {
             </form>
         </Dialog>
 
-        <ConfirmDialog />
     </div>
 </template>
 

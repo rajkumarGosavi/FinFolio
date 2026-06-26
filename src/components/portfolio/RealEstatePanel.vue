@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { reactive } from "vue";
 import { useConfirm } from "primevue/useconfirm";
 import { usePortfolioStore } from "@/stores/portfolio";
@@ -92,7 +92,7 @@ function gainPct(item: any) {
             </Column>
             <Column field="currentValue" header="Current Value">
                 <template #body="{ data }">
-                    {{ data.currentValue ? formatINR(data.currentValue) : '—' }}
+                    {{ data.currentValue ? formatINR(data.currentValue) : 'â€”' }}
                 </template>
             </Column>
             <Column header="Gain">
@@ -101,11 +101,11 @@ function gainPct(item: any) {
                           :class="Number(gainPct(data)) >= 0 ? 'gain' : 'loss'">
                         {{ gainPct(data) }}%
                     </span>
-                    <span v-else>—</span>
+                    <span v-else>â€”</span>
                 </template>
             </Column>
             <Column field="rentalIncome" header="Rental/mo">
-                <template #body="{ data }">{{ data.rentalIncome ? formatINR(data.rentalIncome) : '—' }}</template>
+                <template #body="{ data }">{{ data.rentalIncome ? formatINR(data.rentalIncome) : 'â€”' }}</template>
             </Column>
             <Column header="" style="width:100px">
                 <template #body="{ data }">
@@ -134,7 +134,7 @@ function gainPct(item: any) {
             </div>
             <div class="field-row">
                 <div class="field">
-                    <label>Purchase Price (₹) *</label>
+                    <label>Purchase Price (â‚¹) *</label>
                     <InputNumber v-model="form.purchasePrice" :min="0" class="w-full" required />
                 </div>
                 <div class="field">
@@ -144,11 +144,11 @@ function gainPct(item: any) {
             </div>
             <div class="field-row">
                 <div class="field">
-                    <label>Current Value (₹)</label>
+                    <label>Current Value (â‚¹)</label>
                     <InputNumber v-model="form.currentValue" :min="0" class="w-full" />
                 </div>
                 <div class="field">
-                    <label>Rental Income / month (₹)</label>
+                    <label>Rental Income / month (â‚¹)</label>
                     <InputNumber v-model="form.rentalIncome" :min="0" class="w-full" />
                 </div>
             </div>
@@ -162,7 +162,6 @@ function gainPct(item: any) {
             </div>
         </form>
     </Dialog>
-    <ConfirmDialog />
 </template>
 
 <style scoped>
@@ -175,3 +174,4 @@ function gainPct(item: any) {
 label { font-size: 0.85rem; font-weight: 500; }
 .dialog-footer { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem; }
 </style>
+

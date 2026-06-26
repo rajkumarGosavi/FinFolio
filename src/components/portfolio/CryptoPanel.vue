@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { computed } from "vue";
 import { useConfirm } from "primevue/useconfirm";
 import { usePortfolioStore } from "@/stores/portfolio";
@@ -48,10 +48,10 @@ function confirmDelete(item: any) {
             <Column field="quantity" header="Quantity">
                 <template #body="{ data }">{{ data.quantity }}</template>
             </Column>
-            <Column field="avgBuyPrice" header="Avg Buy (₹)">
+            <Column field="avgBuyPrice" header="Avg Buy (â‚¹)">
                 <template #body="{ data }">{{ formatINR(data.avgBuyPrice) }}</template>
             </Column>
-            <Column field="currentValue" header="Value (₹)" sortable>
+            <Column field="currentValue" header="Value (â‚¹)" sortable>
                 <template #body="{ data }">{{ formatINR(data.currentValue) }}</template>
             </Column>
             <Column field="pnl" header="P&amp;L" sortable>
@@ -88,7 +88,7 @@ function confirmDelete(item: any) {
                     <InputNumber v-model="form.quantity" :min="0" :minFractionDigits="6" class="w-full" required />
                 </div>
                 <div class="field">
-                    <label>Avg Buy Price (₹) *</label>
+                    <label>Avg Buy Price (â‚¹) *</label>
                     <InputNumber v-model="form.avgBuyPrice" :min="0" :minFractionDigits="2" class="w-full" required />
                 </div>
             </div>
@@ -98,7 +98,6 @@ function confirmDelete(item: any) {
             </div>
         </form>
     </Dialog>
-    <ConfirmDialog />
 </template>
 
 <style scoped>
@@ -110,3 +109,4 @@ function confirmDelete(item: any) {
 label { font-size: 0.85rem; font-weight: 500; }
 .dialog-footer { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem; }
 </style>
+

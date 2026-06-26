@@ -448,7 +448,6 @@ onMounted(() => store.fetchAll());
         <p v-else class="amort-empty">No schedule data available for this loan.</p>
     </Dialog>
 
-    <ConfirmDialog />
 </template>
 
 <style scoped>

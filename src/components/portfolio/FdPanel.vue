@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { reactive } from "vue";
 import { useConfirm } from "primevue/useconfirm";
 import { usePortfolioStore } from "@/stores/portfolio";
@@ -79,7 +79,7 @@ function confirmDelete(item: any) {
 const COMPOUNDING = ["monthly", "quarterly", "half-yearly", "annually"];
 
 function daysToMaturity(maturityDate: string) {
-    if (!maturityDate) return "—";
+    if (!maturityDate) return "â€”";
     const diff = new Date(maturityDate).getTime() - Date.now();
     const days = Math.ceil(diff / 86400000);
     if (days < 0) return "Matured";
@@ -105,7 +105,7 @@ function daysToMaturity(maturityDate: string) {
             </Column>
             <Column field="compounding" header="Compounding" />
             <Column field="maturityAmount" header="Maturity Amt">
-                <template #body="{ data }">{{ data.maturityAmount ? formatINR(data.maturityAmount) : '—' }}</template>
+                <template #body="{ data }">{{ data.maturityAmount ? formatINR(data.maturityAmount) : 'â€”' }}</template>
             </Column>
             <Column header="Matures In" style="width:130px">
                 <template #body="{ data }">
@@ -136,7 +136,7 @@ function daysToMaturity(maturityDate: string) {
             </div>
             <div class="field-row">
                 <div class="field">
-                    <label>Principal (₹) *</label>
+                    <label>Principal (â‚¹) *</label>
                     <InputNumber v-model="form.principal" :min="0" class="w-full" required />
                 </div>
                 <div class="field">
@@ -165,7 +165,7 @@ function daysToMaturity(maturityDate: string) {
                 </div>
             </div>
             <div class="field">
-                <label>Maturity Amount (₹)</label>
+                <label>Maturity Amount (â‚¹)</label>
                 <InputNumber v-model="form.maturityAmount" :min="0" class="w-full" />
             </div>
             <div class="field-row field--check-row">
@@ -178,7 +178,6 @@ function daysToMaturity(maturityDate: string) {
             </div>
         </form>
     </Dialog>
-    <ConfirmDialog />
 </template>
 
 <style scoped>
@@ -191,3 +190,4 @@ function daysToMaturity(maturityDate: string) {
 label { font-size: 0.85rem; font-weight: 500; }
 .dialog-footer { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem; }
 </style>
+

@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { useConfirm } from "primevue/useconfirm";
@@ -37,7 +37,7 @@ function confirmDelete(item: any) {
     });
 }
 
-// ─── SIP Schedules ────────────────────────────────────────────
+// â”€â”€â”€ SIP Schedules â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const FREQUENCIES = ["monthly", "quarterly", "weekly"];
 
 interface SipSchedule {
@@ -241,7 +241,7 @@ onMounted(() => {
             </Column>
             <Column field="startDate" header="Start" style="width:105px" />
             <Column field="endDate" header="End" style="width:105px">
-                <template #body="{ data }">{{ data.endDate ?? '—' }}</template>
+                <template #body="{ data }">{{ data.endDate ?? 'â€”' }}</template>
             </Column>
             <Column header="" style="width:90px">
                 <template #body="{ data }">
@@ -279,7 +279,7 @@ onMounted(() => {
                     <InputNumber v-model="form.units" :min="0" :minFractionDigits="3" class="w-full" required />
                 </div>
                 <div class="field">
-                    <label>Avg NAV (₹) *</label>
+                    <label>Avg NAV (â‚¹) *</label>
                     <InputNumber v-model="form.avgNav" :min="0" :minFractionDigits="4" class="w-full" required />
                 </div>
             </div>
@@ -309,7 +309,7 @@ onMounted(() => {
             </div>
             <div class="field-row">
                 <div class="field">
-                    <label>Amount (₹) *</label>
+                    <label>Amount (â‚¹) *</label>
                     <InputNumber v-model="sipForm.amount" :min="100" :minFractionDigits="0" class="w-full" required />
                 </div>
                 <div class="field">
@@ -319,7 +319,7 @@ onMounted(() => {
             </div>
             <div class="field-row">
                 <div class="field">
-                    <label>Debit Day (1–31) *</label>
+                    <label>Debit Day (1â€“31) *</label>
                     <InputNumber v-model="sipForm.debitDay" :min="1" :max="31" class="w-full" required />
                 </div>
                 <div class="field">
@@ -341,8 +341,6 @@ onMounted(() => {
             </div>
         </form>
     </Dialog>
-
-    <ConfirmDialog />
 </template>
 
 <style scoped>
@@ -363,3 +361,4 @@ onMounted(() => {
 label { font-size: 0.85rem; font-weight: 500; }
 .dialog-footer { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem; }
 </style>
+

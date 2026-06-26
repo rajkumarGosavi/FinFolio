@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { reactive, computed } from "vue";
 import { useConfirm } from "primevue/useconfirm";
 import { usePortfolioStore } from "@/stores/portfolio";
@@ -146,7 +146,7 @@ function bondTypeSeverity(type: string): string {
 }
 
 function daysToMaturity(maturityDate: string | null) {
-    if (!maturityDate) return "—";
+    if (!maturityDate) return "â€”";
     const diff = new Date(maturityDate).getTime() - Date.now();
     const days = Math.ceil(diff / 86400000);
     if (days < 0) return "Matured";
@@ -222,7 +222,7 @@ const totalPnl = computed(() => totalCurrentValue.value - totalInvestment.value)
                 </template>
             </Column>
             <Column field="creditRating" header="Rating" style="width:80px">
-                <template #body="{ data }">{{ data.creditRating ?? "—" }}</template>
+                <template #body="{ data }">{{ data.creditRating ?? "â€”" }}</template>
             </Column>
             <Column header="" style="width:100px">
                 <template #body="{ data }">
@@ -255,12 +255,12 @@ const totalPnl = computed(() => totalCurrentValue.value - totalInvestment.value)
                 </div>
                 <div class="field">
                     <label>Credit Rating</label>
-                    <InputText v-model="form.creditRating" placeholder="AAA, AA+, A…" class="w-full" />
+                    <InputText v-model="form.creditRating" placeholder="AAA, AA+, Aâ€¦" class="w-full" />
                 </div>
             </div>
             <div class="field-row">
                 <div class="field">
-                    <label>Face Value (₹) *</label>
+                    <label>Face Value (â‚¹) *</label>
                     <InputNumber v-model="form.faceValue" :min="1" class="w-full" required />
                 </div>
                 <div class="field">
@@ -270,11 +270,11 @@ const totalPnl = computed(() => totalCurrentValue.value - totalInvestment.value)
             </div>
             <div class="field-row">
                 <div class="field">
-                    <label>Purchase Price (₹) *</label>
+                    <label>Purchase Price (â‚¹) *</label>
                     <InputNumber v-model="form.purchasePrice" :min="0" :minFractionDigits="2" class="w-full" required />
                 </div>
                 <div class="field">
-                    <label>Current Price (₹)</label>
+                    <label>Current Price (â‚¹)</label>
                     <InputNumber v-model="form.currentPrice" :min="0" :minFractionDigits="2" class="w-full" />
                 </div>
             </div>
@@ -308,7 +308,6 @@ const totalPnl = computed(() => totalCurrentValue.value - totalInvestment.value)
             </div>
         </form>
     </Dialog>
-    <ConfirmDialog />
 </template>
 
 <style scoped>
@@ -333,3 +332,4 @@ label { font-size: 0.85rem; font-weight: 500; }
 .pnl-pos { color: var(--p-green-500); }
 .pnl-neg { color: var(--p-red-500); }
 </style>
+

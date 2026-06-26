@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { reactive } from "vue";
 import { useConfirm } from "primevue/useconfirm";
 import { usePortfolioStore } from "@/stores/portfolio";
@@ -105,15 +105,15 @@ const FREQ_OPTIONS = ["monthly", "quarterly", "annual"];
                 <template #body="{ data }">{{ formatINR(data.premiumAmount) }} / {{ data.premiumFreq }}</template>
             </Column>
             <Column field="coverageAmount" header="Coverage">
-                <template #body="{ data }">{{ data.coverageAmount ? formatINR(data.coverageAmount) : '—' }}</template>
+                <template #body="{ data }">{{ data.coverageAmount ? formatINR(data.coverageAmount) : 'â€”' }}</template>
             </Column>
             <Column field="maturityValue" header="Maturity Value">
-                <template #body="{ data }">{{ data.maturityValue ? formatINR(data.maturityValue) : '—' }}</template>
+                <template #body="{ data }">{{ data.maturityValue ? formatINR(data.maturityValue) : 'â€”' }}</template>
             </Column>
             <Column header="Next Premium">
                 <template #body="{ data }">
                     <Tag v-if="dueBadgeLabel(data)" :value="dueBadgeLabel(data)!" />
-                    <span v-else>—</span>
+                    <span v-else>â€”</span>
                 </template>
             </Column>
             <Column header="" style="width:100px">
@@ -143,7 +143,7 @@ const FREQ_OPTIONS = ["monthly", "quarterly", "annual"];
             </div>
             <div class="field-row">
                 <div class="field">
-                    <label>Premium Amount (₹) *</label>
+                    <label>Premium Amount (â‚¹) *</label>
                     <InputNumber v-model="form.premiumAmount" :min="0" class="w-full" required />
                 </div>
                 <div class="field">
@@ -153,11 +153,11 @@ const FREQ_OPTIONS = ["monthly", "quarterly", "annual"];
             </div>
             <div class="field-row">
                 <div class="field">
-                    <label>Coverage Amount (₹)</label>
+                    <label>Coverage Amount (â‚¹)</label>
                     <InputNumber v-model="form.coverageAmount" :min="0" class="w-full" />
                 </div>
                 <div class="field">
-                    <label>Maturity Value (₹)</label>
+                    <label>Maturity Value (â‚¹)</label>
                     <InputNumber v-model="form.maturityValue" :min="0" class="w-full" />
                 </div>
             </div>
@@ -181,7 +181,6 @@ const FREQ_OPTIONS = ["monthly", "quarterly", "annual"];
             </div>
         </form>
     </Dialog>
-    <ConfirmDialog />
 </template>
 
 <style scoped>
@@ -193,3 +192,4 @@ const FREQ_OPTIONS = ["monthly", "quarterly", "annual"];
 label { font-size: 0.85rem; font-weight: 500; }
 .dialog-footer { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem; }
 </style>
+

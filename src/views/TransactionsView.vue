@@ -213,7 +213,6 @@ onMounted(() => store.fetch({ limit: 100 }));
             </div>
         </form>
     </Dialog>
-    <ConfirmDialog />
 </template>
 
 <style scoped>
