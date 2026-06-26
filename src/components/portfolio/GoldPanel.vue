@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { reactive, computed } from "vue";
 import { useConfirm } from "primevue/useconfirm";
 import { usePortfolioStore } from "@/stores/portfolio";
@@ -147,7 +147,7 @@ const holdings = computed(() => portfolio.gold.map((h: any) => ({
             </template>
 
             <div class="field">
-                <label>Avg Buy Price (₹ per gram/unit) *</label>
+                <label>Avg Buy Price (â‚¹ per gram/unit) *</label>
                 <InputNumber v-model="form.avgBuyPrice" :min="0" :minFractionDigits="2" class="w-full" required />
             </div>
 
@@ -162,7 +162,6 @@ const holdings = computed(() => portfolio.gold.map((h: any) => ({
             </div>
         </form>
     </Dialog>
-    <ConfirmDialog />
 </template>
 
 <style scoped>
@@ -174,3 +173,4 @@ const holdings = computed(() => portfolio.gold.map((h: any) => ({
 label { font-size: 0.85rem; font-weight: 500; }
 .dialog-footer { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem; }
 </style>
+

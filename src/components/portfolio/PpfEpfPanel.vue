@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { computed } from "vue";
 import { useConfirm } from "primevue/useconfirm";
 import { usePortfolioStore } from "@/stores/portfolio";
@@ -45,10 +45,10 @@ function confirmDelete(item: any) {
                 <template #body="{ data }">{{ data.interestRate }}%</template>
             </Column>
             <Column field="employerContrib" header="Employer Contrib">
-                <template #body="{ data }">{{ data.employerContrib ? formatINR(data.employerContrib) : '—' }}</template>
+                <template #body="{ data }">{{ data.employerContrib ? formatINR(data.employerContrib) : 'â€”' }}</template>
             </Column>
             <Column field="employeeContrib" header="Employee Contrib">
-                <template #body="{ data }">{{ data.employeeContrib ? formatINR(data.employeeContrib) : '—' }}</template>
+                <template #body="{ data }">{{ data.employeeContrib ? formatINR(data.employeeContrib) : 'â€”' }}</template>
             </Column>
             <Column header="" style="width:100px">
                 <template #body="{ data }">
@@ -76,7 +76,7 @@ function confirmDelete(item: any) {
                 <InputText v-model="form.accountNumber" class="w-full" />
             </div>
             <div class="field">
-                <label>Current Balance (₹) *</label>
+                <label>Current Balance (â‚¹) *</label>
                 <InputNumber v-model="form.balance" :min="0" class="w-full" required />
             </div>
             <div class="field">
@@ -85,11 +85,11 @@ function confirmDelete(item: any) {
             </div>
             <div class="field-row" v-if="form.accountType === 'EPF' || form.accountType === 'VPF'">
                 <div class="field">
-                    <label>Employer Contribution (₹)</label>
+                    <label>Employer Contribution (â‚¹)</label>
                     <InputNumber v-model="form.employerContrib" :min="0" class="w-full" />
                 </div>
                 <div class="field">
-                    <label>Employee Contribution (₹)</label>
+                    <label>Employee Contribution (â‚¹)</label>
                     <InputNumber v-model="form.employeeContrib" :min="0" class="w-full" />
                 </div>
             </div>
@@ -99,7 +99,6 @@ function confirmDelete(item: any) {
             </div>
         </form>
     </Dialog>
-    <ConfirmDialog />
 </template>
 
 <style scoped>
@@ -111,3 +110,4 @@ function confirmDelete(item: any) {
 label { font-size: 0.85rem; font-weight: 500; }
 .dialog-footer { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem; }
 </style>
+
