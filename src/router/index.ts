@@ -6,6 +6,7 @@ const routes: RouteRecordRaw[] = [
     { path: "/", redirect: "/dashboard" },
     { path: "/setup", component: () => import("@/views/SetupView.vue"), meta: { public: true } },
     { path: "/unlock", component: () => import("@/views/UnlockView.vue"), meta: { public: true } },
+    { path: "/onboarding", component: () => import("@/views/OnboardingView.vue"), meta: { public: true } },
     {
         path: "/",
         component: () => import("@/layouts/AppLayout.vue"),
@@ -46,6 +47,12 @@ router.beforeEach(async (to) => {
 
     if (!auth.isPasswordSet) {
         return "/setup";
+    }
+    const needsOnboarding = import.meta.env.DEV
+        ? !auth._onboardingSeen
+        : !auth.onboardingComplete;
+    if (needsOnboarding) {
+        return "/onboarding";
     }
     if (!auth.isUnlocked) {
         return "/unlock";

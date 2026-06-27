@@ -7,6 +7,7 @@ import { useConfirm } from "primevue/useconfirm";
 import { useToast } from "primevue/usetoast";
 import { useUiStore } from "@/stores/ui";
 import type { Theme } from "@/stores/ui";
+import { usePortfolioStore } from "@/stores/portfolio";
 
 // ─── Analytics types ─────────────────────────────────────────
 interface EventStat   { eventName: string; count: number; lastSeen: string; }
@@ -15,6 +16,7 @@ interface PerfStat    { metricName: string; avgMs: number; count: number; }
 interface AnalyticsExport { exportedAt: string; appVersion: string; events: EventStat[]; errors: ErrorEntry[]; perf: PerfStat[]; }
 
 const ui = useUiStore();
+const portfolio = usePortfolioStore();
 
 // ─── Appearance ──────────────────────────────────────────────
 const THEME_OPTIONS: { label: string; value: Theme; icon: string }[] = [
@@ -270,6 +272,32 @@ async function confirmSync() {
     }
 }
 
+// ─── Developer / Dummy Data ──────────────────────────────────
+const isDevBuild = ref(false);
+const dummyDataEnabled = ref(false);
+const dummyDataLoading = ref(false);
+
+async function toggleDummyData(val: boolean) {
+    dummyDataLoading.value = true;
+    try {
+        if (val) {
+            await invoke("seed_dummy_data");
+            dummyDataEnabled.value = true;
+            await portfolio.fetchAll();
+            toast.add({ severity: "success", summary: "Dummy data loaded", detail: "Portfolio refreshed with demo records.", life: 4000 });
+        } else {
+            await invoke("clear_dummy_data");
+            dummyDataEnabled.value = false;
+            await portfolio.fetchAll();
+            toast.add({ severity: "info", summary: "Dummy data cleared", detail: "All demo records removed.", life: 3000 });
+        }
+    } catch (e: any) {
+        toast.add({ severity: "error", summary: "Failed", detail: String(e?.message ?? e), life: 4000 });
+    } finally {
+        dummyDataLoading.value = false;
+    }
+}
+
 // ─── About ───────────────────────────────────────────────────
 const appDataDir = ref("");
 
@@ -278,6 +306,12 @@ onMounted(async () => {
     await loadDiagnostics();
     try {
         appDataDir.value = await invoke<string>("get_app_data_dir");
+    } catch { /* non-critical */ }
+    try {
+        isDevBuild.value = await invoke<boolean>("is_dev_build");
+        if (isDevBuild.value) {
+            dummyDataEnabled.value = await invoke<boolean>("is_dummy_data_seeded");
+        }
     } catch { /* non-critical */ }
 });
 
@@ -519,6 +553,28 @@ getVersion().then(v => appVersion.value = v);
             </template>
         </div>
 
+        <!-- Developer (dev builds only) -->
+        <div v-if="isDevBuild" class="section-card dev-card">
+            <h2>
+                <i class="pi pi-code" style="margin-right:0.5rem;color:var(--p-orange-400)" />
+                Developer
+            </h2>
+            <div class="data-row">
+                <div class="data-row-info">
+                    <span class="data-row-title">Dummy Data</span>
+                    <span class="data-row-desc">
+                        Populate all sections with realistic demo records (equity, MF, FD, gold, crypto, etc.).
+                        Not available in release builds.
+                    </span>
+                </div>
+                <ToggleSwitch
+                    :modelValue="dummyDataEnabled"
+                    :disabled="dummyDataLoading"
+                    @update:modelValue="toggleDummyData"
+                />
+            </div>
+        </div>
+
         <!-- About -->
         <div class="section-card">
             <h2>About</h2>
@@ -655,6 +711,10 @@ label { font-size: 0.875rem; font-weight: 500; }
 
 /* Sync dialog */
 .sync-desc { font-size: 0.85rem; color: var(--p-text-muted-color); margin: 0 0 1rem; line-height: 1.5; }
+
+/* Developer section */
+.dev-card { border-color: var(--p-orange-200); }
+.dark .dev-card { border-color: var(--p-orange-800); }
 
 @media (max-width: 639px) {
     .data-row { flex-direction: column; align-items: flex-start; gap: 0.75rem; }

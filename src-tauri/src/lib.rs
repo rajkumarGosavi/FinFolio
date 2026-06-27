@@ -2,6 +2,7 @@ use tauri::Manager;
 
 pub mod auth;
 pub mod db;
+pub mod dev_tools;
 pub mod error;
 pub mod income_expenses;
 pub mod liabilities;
@@ -185,6 +186,11 @@ pub fn run() {
             reminders::commands::add_milestone,
             reminders::commands::delete_milestone,
             reminders::commands::get_calendar_events,
+            // dev tools (available in all builds; guarded internally)
+            dev_tools::is_dev_build,
+            dev_tools::is_dummy_data_seeded,
+            dev_tools::seed_dummy_data,
+            dev_tools::clear_dummy_data,
             // analytics
             analytics::commands::track_event,
             analytics::commands::track_error,

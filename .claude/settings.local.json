@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "PowerShell(New-Item -ItemType Directory -Force \"C:\\\\Users\\\\Rajkumar\\\\projects\\\\portfolio-tracker\\\\src\\\\components\\\\portfolio\")"
+      "PowerShell(New-Item -ItemType Directory -Force \"C:\\\\Users\\\\Rajkumar\\\\projects\\\\portfolio-tracker\\\\src\\\\components\\\\portfolio\")",
+      "Bash(Get-ChildItem -Force)",
+      "Bash(Select-Object Name, PSIsContainer)",
+      "Bash(Sort-Object Name)"
     ]
   }
 }

@@ -24,6 +24,9 @@ pub fn run_migrations(conn: &Connection) -> Result<()> {
     if schema_sql.contains("CHECK(exchange") || schema_sql.contains("CHECK (exchange") {
         conn.execute_batch(MIGRATION_012).map_err(|e| AppError::Database(e.to_string()))?;
     }
+    // MIGRATION_013: onboarding_complete flag — INSERT OR IGNORE is idempotent;
+    // UPDATE flips to 'true' for existing users who already have a password set
+    conn.execute_batch(MIGRATION_013).map_err(|e| AppError::Database(e.to_string()))?;
     Ok(())
 }
 
@@ -423,6 +426,16 @@ DROP TABLE equity_holdings;
 ALTER TABLE equity_holdings_new RENAME TO equity_holdings;
 CREATE INDEX IF NOT EXISTS idx_equity_isin ON equity_holdings(isin);
 CREATE INDEX IF NOT EXISTS idx_equity_account ON equity_holdings(account_id);
+";
+
+const MIGRATION_013: &str = "
+INSERT OR IGNORE INTO app_settings (key, value)
+    VALUES ('onboarding_complete', 'false');
+
+UPDATE app_settings
+SET value = 'true'
+WHERE key = 'onboarding_complete'
+  AND (SELECT value FROM app_settings WHERE key = 'password_hash') != '';
 ";
 
 const MIGRATION_011: &str = "

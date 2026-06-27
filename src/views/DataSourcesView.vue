@@ -411,10 +411,13 @@ async function saveAndConnect() {
     }
 }
 
-onMounted(() => {
+const isDevBuild = ref(false);
+
+onMounted(async () => {
     zerodha.fetchStatus();
     upstox.fetchStatus();
     angelOne.fetchStatus();
+    try { isDevBuild.value = await invoke<boolean>("is_dev_build"); } catch { /* non-critical */ }
 });
 
 // ── CAS import state ────────────────────────────────────────────
@@ -625,7 +628,6 @@ function formatTime(iso: string | null): string {
                             <span class="sync-title">Zerodha connected</span>
                             <span class="sync-desc text-muted">
                                 Sync to import your latest holdings into the Portfolio tab.
-                                Prices refresh automatically via Yahoo Finance.
                             </span>
                             <span v-if="zerodha.syncResult" class="sync-result text-muted">
                                 Last sync: {{ zerodha.syncResult.synced }} holding{{
@@ -1146,7 +1148,8 @@ function formatTime(iso: string | null): string {
             </div>
         </div>
 
-        <!-- Market Pulse -->
+        <!-- Market Pulse — Yahoo Finance (dev only) -->
+        <template v-if="isDevBuild">
         <div class="section-header">
             <h2>Market Pulse</h2>
             <Button
@@ -1180,6 +1183,7 @@ function formatTime(iso: string | null): string {
             Last fetched at {{ formatTime(store.indices.lastUpdated) }}
         </p>
         <p v-else class="indices-updated">Click Fetch to load live indices.</p>
+        </template>
 
         <!-- Price Refresh -->
         <div class="section-header">
@@ -1187,8 +1191,8 @@ function formatTime(iso: string | null): string {
         </div>
 
         <div class="refresh-grid">
-            <!-- Equity -->
-            <div class="refresh-card">
+            <!-- Equity — Yahoo Finance (dev only) -->
+            <div v-if="isDevBuild" class="refresh-card">
                 <div class="refresh-card-header">
                     <div>
                         <span class="refresh-title">Equity Holdings</span>

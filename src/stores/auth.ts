@@ -5,6 +5,8 @@ export const useAuthStore = defineStore("auth", {
     state: () => ({
         isPasswordSet: false,
         isUnlocked: false,
+        onboardingComplete: false,
+        _onboardingSeen: false,
         _initialized: false,
         _lastActivity: Date.now(),
     }),
@@ -13,6 +15,14 @@ export const useAuthStore = defineStore("auth", {
         async init() {
             if (this._initialized) return;
             this.isPasswordSet = await invoke<boolean>("is_password_set");
+            if (this.isPasswordSet) {
+                try {
+                    const val = await invoke<string>("get_setting", { key: "onboarding_complete" });
+                    this.onboardingComplete = val === "true";
+                } catch {
+                    this.onboardingComplete = false;
+                }
+            }
             this._initialized = true;
         },
 
@@ -29,6 +39,12 @@ export const useAuthStore = defineStore("auth", {
             await invoke("setup_master_password", { password });
             this.isPasswordSet = true;
             this.isUnlocked = true;
+        },
+
+        async completeOnboarding() {
+            await invoke("set_setting", { key: "onboarding_complete", value: "true" });
+            this.onboardingComplete = true;
+            this._onboardingSeen = true;
         },
 
         lock() {

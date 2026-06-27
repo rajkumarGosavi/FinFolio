@@ -24,7 +24,7 @@ async function submit() {
     loading.value = true;
     try {
         await auth.setup(password.value);
-        router.push("/dashboard");
+        router.push("/onboarding");
     } catch (e: any) {
         error.value = e?.message?.message ?? "Setup failed.";
     } finally {
