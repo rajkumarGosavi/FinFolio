@@ -174,11 +174,11 @@ function brokerSeverity(brokerName: string): string {
             </Column>
 
             <!-- Actions (only available for single-broker holdings; multi-broker managed via expand) -->
-            <Column header="" style="width: 80px">
+            <Column header="Actions" style="width: 80px">
                 <template #body="{ data }">
                     <template v-if="!data.multipleAccounts">
-                        <Button icon="pi pi-pencil" text size="small" @click="openEdit(data.entries[0])" />
-                        <Button icon="pi pi-trash" text size="small" @click="confirmDelete(data.entries[0])" />
+                        <Button icon="pi pi-pencil" text size="small" aria-label="Edit holding" @click="openEdit(data.entries[0])" />
+                        <Button icon="pi pi-trash" text size="small" aria-label="Delete holding" @click="confirmDelete(data.entries[0])" />
                     </template>
                 </template>
             </Column>
@@ -213,8 +213,8 @@ function brokerSeverity(brokerName: string): string {
                                 {{ formatINR(entry.pnl) }} ({{ formatPercent(entry.pnlPct) }})
                             </td>
                             <td>
-                                <Button icon="pi pi-pencil" text size="small" @click="openEdit(entry)" />
-                                <Button icon="pi pi-trash" text size="small" @click="confirmDelete(entry)" />
+                                <Button icon="pi pi-pencil" text size="small" aria-label="Edit entry" @click="openEdit(entry)" />
+                                <Button icon="pi pi-trash" text size="small" aria-label="Delete entry" @click="confirmDelete(entry)" />
                             </td>
                         </tr>
                     </tbody>

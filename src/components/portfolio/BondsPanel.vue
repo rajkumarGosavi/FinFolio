@@ -224,10 +224,10 @@ const totalPnl = computed(() => totalCurrentValue.value - totalInvestment.value)
             <Column field="creditRating" header="Rating" style="width:80px">
                 <template #body="{ data }">{{ data.creditRating ?? "â€”" }}</template>
             </Column>
-            <Column header="" style="width:100px">
+            <Column header="Actions" style="width:100px">
                 <template #body="{ data }">
-                    <Button icon="pi pi-pencil" text size="small" @click="openEdit(data)" />
-                    <Button icon="pi pi-trash" text size="small" @click="confirmDelete(data)" />
+                    <Button icon="pi pi-pencil" text size="small" aria-label="Edit" @click="openEdit(data)" />
+                    <Button icon="pi pi-trash" text size="small" aria-label="Delete" @click="confirmDelete(data)" />
                 </template>
             </Column>
         </DataTable>

@@ -166,12 +166,18 @@ onMounted(loadEvents);
                         <div
                             v-else
                             class="day-cell"
+                            role="button"
+                            :tabindex="0"
                             :class="{
                                 'is-today':    cell.dateStr === todayStr,
                                 'is-selected': cell.dateStr === selectedDay,
                                 'has-events':  !!eventsByDay[cell.dateStr]?.length,
                             }"
+                            :aria-label="`${cell.day}${eventsByDay[cell.dateStr]?.length ? `, ${eventsByDay[cell.dateStr].length} event${eventsByDay[cell.dateStr].length > 1 ? 's' : ''}` : ''}`"
+                            :aria-pressed="cell.dateStr === selectedDay"
                             @click="selectedDay = cell.dateStr"
+                            @keydown.enter="selectedDay = cell.dateStr"
+                            @keydown.space.prevent="selectedDay = cell.dateStr"
                         >
                             <span class="day-num">{{ cell.day }}</span>
 
@@ -325,6 +331,12 @@ onMounted(loadEvents);
 }
 .day-cell:nth-child(7n) { border-right: none; }
 .day-cell--blank { cursor: default; background: var(--p-surface-ground); }
+.day-cell:focus-visible {
+    outline: 2px solid var(--p-primary-color);
+    outline-offset: -2px;
+    z-index: 1;
+    position: relative;
+}
 .day-cell:hover:not(.day-cell--blank) {
     background: color-mix(in srgb, var(--p-primary-color) 12%, transparent);
 }

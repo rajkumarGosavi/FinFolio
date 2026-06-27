@@ -557,16 +557,18 @@ function formatTime(iso: string | null): string {
                     </ol>
                     <div class="setup-form">
                         <div class="field">
-                            <label>API Key</label>
+                            <label for="zerodha-api-key">API Key</label>
                             <InputText
+                                id="zerodha-api-key"
                                 v-model="apiKeyInput"
                                 placeholder="Your Kite API Key"
                                 fluid
                             />
                         </div>
                         <div class="field">
-                            <label>API Secret</label>
+                            <label for="zerodha-api-secret">API Secret</label>
                             <Password
+                                inputId="zerodha-api-secret"
                                 v-model="apiSecretInput"
                                 :feedback="false"
                                 toggleMask
@@ -681,7 +683,7 @@ function formatTime(iso: string | null): string {
                             </DataTable>
                         </template>
                         <Message v-if="zerodhaImportError" severity="error">{{ zerodhaImportError }}</Message>
-                        <div v-if="zerodhaImportResult" class="refresh-result">
+                        <div v-if="zerodhaImportResult" class="refresh-result" aria-live="polite" aria-atomic="true">
                             <Tag :value="`✓ ${zerodhaImportResult.imported} holdings imported`" severity="success" />
                             <Tag v-if="zerodhaImportResult.skipped > 0" :value="`${zerodhaImportResult.skipped} skipped`" severity="secondary" />
                         </div>
@@ -734,7 +736,7 @@ function formatTime(iso: string | null): string {
                             </DataTable>
                         </template>
                         <Message v-if="zerodhaImportError" severity="error">{{ zerodhaImportError }}</Message>
-                        <div v-if="zerodhaImportResult" class="refresh-result">
+                        <div v-if="zerodhaImportResult" class="refresh-result" aria-live="polite" aria-atomic="true">
                             <Tag :value="`✓ ${zerodhaImportResult.imported} holdings imported`" severity="success" />
                             <Tag v-if="zerodhaImportResult.skipped > 0" :value="`${zerodhaImportResult.skipped} skipped`" severity="secondary" />
                         </div>
@@ -773,12 +775,13 @@ function formatTime(iso: string | null): string {
                     </ol>
                     <div class="setup-form">
                         <div class="field">
-                            <label>API Key</label>
-                            <InputText v-model="upstoxApiKey" placeholder="Your Upstox API Key" fluid />
+                            <label for="upstox-api-key">API Key</label>
+                            <InputText id="upstox-api-key" v-model="upstoxApiKey" placeholder="Your Upstox API Key" fluid />
                         </div>
                         <div class="field">
-                            <label>API Secret</label>
+                            <label for="upstox-api-secret">API Secret</label>
                             <Password
+                                inputId="upstox-api-secret"
                                 v-model="upstoxApiSecret"
                                 :feedback="false"
                                 toggleMask
@@ -870,7 +873,7 @@ function formatTime(iso: string | null): string {
                             </DataTable>
                         </template>
                         <Message v-if="upstoxCsvImportError" severity="error">{{ upstoxCsvImportError }}</Message>
-                        <div v-if="upstoxCsvImportResult" class="refresh-result">
+                        <div v-if="upstoxCsvImportResult" class="refresh-result" aria-live="polite" aria-atomic="true">
                             <Tag :value="`✓ ${upstoxCsvImportResult.imported} holdings imported`" severity="success" />
                             <Tag v-if="upstoxCsvImportResult.skipped > 0" :value="`${upstoxCsvImportResult.skipped} skipped`" severity="secondary" />
                         </div>
@@ -922,7 +925,7 @@ function formatTime(iso: string | null): string {
                             </DataTable>
                         </template>
                         <Message v-if="upstoxCsvImportError" severity="error">{{ upstoxCsvImportError }}</Message>
-                        <div v-if="upstoxCsvImportResult" class="refresh-result">
+                        <div v-if="upstoxCsvImportResult" class="refresh-result" aria-live="polite" aria-atomic="true">
                             <Tag :value="`✓ ${upstoxCsvImportResult.imported} holdings imported`" severity="success" />
                             <Tag v-if="upstoxCsvImportResult.skipped > 0" :value="`${upstoxCsvImportResult.skipped} skipped`" severity="secondary" />
                         </div>
@@ -949,12 +952,12 @@ function formatTime(iso: string | null): string {
                 </p>
                 <div class="setup-form">
                     <div class="field">
-                        <label>API Key</label>
-                        <InputText v-model="angelApiKey" placeholder="SmartAPI API Key" fluid />
+                        <label for="angel-api-key">API Key</label>
+                        <InputText id="angel-api-key" v-model="angelApiKey" placeholder="SmartAPI API Key" fluid />
                     </div>
                     <div class="field">
-                        <label>Client Code</label>
-                        <InputText v-model="angelClientId" placeholder="Your Angel One Client Code" fluid />
+                        <label for="angel-client-id">Client Code</label>
+                        <InputText id="angel-client-id" v-model="angelClientId" placeholder="Your Angel One Client Code" fluid />
                     </div>
                     <Message v-if="angelOne.error" severity="error">{{ angelOne.error }}</Message>
                     <Button
@@ -1065,7 +1068,7 @@ function formatTime(iso: string | null): string {
                         </DataTable>
                     </template>
                     <Message v-if="angelCsvImportError" severity="error">{{ angelCsvImportError }}</Message>
-                    <div v-if="angelCsvImportResult" class="refresh-result">
+                    <div v-if="angelCsvImportResult" class="refresh-result" aria-live="polite" aria-atomic="true">
                         <Tag :value="`✓ ${angelCsvImportResult.imported} holdings imported`" severity="success" />
                         <Tag v-if="angelCsvImportResult.skipped > 0" :value="`${angelCsvImportResult.skipped} skipped`" severity="secondary" />
                     </div>
@@ -1124,7 +1127,7 @@ function formatTime(iso: string | null): string {
 
                 <Message v-if="growwError" severity="error">{{ growwError }}</Message>
 
-                <div v-if="growwImportResult" class="refresh-result">
+                <div v-if="growwImportResult" class="refresh-result" aria-live="polite" aria-atomic="true">
                     <Tag :value="`✓ ${growwImportResult.imported} holdings imported`" severity="success" />
                     <Tag
                         v-if="growwImportResult.skipped > 0"
@@ -1202,7 +1205,7 @@ function formatTime(iso: string | null): string {
                         @click="store.refreshEquity()"
                     />
                 </div>
-                <div v-if="store.equityResult" class="refresh-result">
+                <div v-if="store.equityResult" class="refresh-result" aria-live="polite" aria-atomic="true">
                     <Tag :value="`✓ ${store.equityResult.updated} updated`" />
                     <Tag
                         v-if="store.equityResult.failed > 0"
@@ -1232,7 +1235,7 @@ function formatTime(iso: string | null): string {
                         @click="store.refreshMfNav()"
                     />
                 </div>
-                <div v-if="store.mfResult" class="refresh-result">
+                <div v-if="store.mfResult" class="refresh-result" aria-live="polite" aria-atomic="true">
                     <Tag :value="`✓ ${store.mfResult.updated} updated`" />
                     <Tag
                         v-if="store.mfResult.failed > 0"

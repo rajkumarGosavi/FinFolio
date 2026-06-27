@@ -250,11 +250,11 @@ onMounted(() => store.fetchAll());
                     <template #body="{ data }">{{ data.interestRate }}%</template>
                 </Column>
                 <Column field="nextEmiDate" header="Next EMI" />
-                <Column header="" style="width:120px">
+                <Column header="Actions" style="width:120px">
                     <template #body="{ data }">
-                        <Button icon="pi pi-calendar" text size="small" @click="openAmortization(data)" v-tooltip="'View amortization schedule'" />
-                        <Button icon="pi pi-pencil" text size="small" @click="openEditLoan(data)" />
-                        <Button icon="pi pi-trash" text size="small" @click="confirmDeleteLoan(data)" />
+                        <Button icon="pi pi-calendar" text size="small" aria-label="View amortization schedule" @click="openAmortization(data)" v-tooltip="'View amortization schedule'" />
+                        <Button icon="pi pi-pencil" text size="small" aria-label="Edit loan" @click="openEditLoan(data)" />
+                        <Button icon="pi pi-trash" text size="small" aria-label="Delete loan" @click="confirmDeleteLoan(data)" />
                     </template>
                 </Column>
             </DataTable>
@@ -279,10 +279,10 @@ onMounted(() => store.fetchAll());
                 <Column field="dueDate" header="Due Day">
                     <template #body="{ data }">{{ data.dueDate ?? '—' }}</template>
                 </Column>
-                <Column header="" style="width:90px">
+                <Column header="Actions" style="width:90px">
                     <template #body="{ data }">
-                        <Button icon="pi pi-pencil" text size="small" @click="openEditCard(data)" />
-                        <Button icon="pi pi-trash" text size="small" @click="confirmDeleteCard(data)" />
+                        <Button icon="pi pi-pencil" text size="small" aria-label="Edit card" @click="openEditCard(data)" />
+                        <Button icon="pi pi-trash" text size="small" aria-label="Delete card" @click="confirmDeleteCard(data)" />
                     </template>
                 </Column>
             </DataTable>

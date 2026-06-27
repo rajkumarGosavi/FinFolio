@@ -205,10 +205,10 @@ onMounted(() => {
                     <Tag :value="data.isDirect ? 'Direct' : 'Regular'" />
                 </template>
             </Column>
-            <Column header="" style="width:100px">
+            <Column header="Actions" style="width:100px">
                 <template #body="{ data }">
-                    <Button icon="pi pi-pencil" text size="small" @click="openEdit(data)" />
-                    <Button icon="pi pi-trash" text size="small" @click="confirmDelete(data)" />
+                    <Button icon="pi pi-pencil" text size="small" aria-label="Edit" @click="openEdit(data)" />
+                    <Button icon="pi pi-trash" text size="small" aria-label="Delete" @click="confirmDelete(data)" />
                 </template>
             </Column>
         </DataTable>
@@ -243,10 +243,10 @@ onMounted(() => {
             <Column field="endDate" header="End" style="width:105px">
                 <template #body="{ data }">{{ data.endDate ?? 'â€”' }}</template>
             </Column>
-            <Column header="" style="width:90px">
+            <Column header="Actions" style="width:90px">
                 <template #body="{ data }">
-                    <Button icon="pi pi-pencil" text size="small" @click="openEditSip(data)" />
-                    <Button icon="pi pi-trash" text size="small" @click="confirmDeleteSip(data)" />
+                    <Button icon="pi pi-pencil" text size="small" aria-label="Edit SIP" @click="openEditSip(data)" />
+                    <Button icon="pi pi-trash" text size="small" aria-label="Delete SIP" @click="confirmDeleteSip(data)" />
                 </template>
             </Column>
         </DataTable>

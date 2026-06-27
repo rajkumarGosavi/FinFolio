@@ -164,10 +164,10 @@ onMounted(() => store.fetch({ limit: 100 }));
                     {{ isCredit(data.type) ? "+" : "−" }}{{ formatINR(Math.abs(data.amount)) }}
                 </template>
             </Column>
-            <Column header="" style="width:90px">
+            <Column header="Actions" style="width:90px">
                 <template #body="{ data }">
-                    <Button icon="pi pi-pencil" text size="small" @click="openEdit(data)" />
-                    <Button icon="pi pi-trash" text size="small" @click="confirmDelete(data)" />
+                    <Button icon="pi pi-pencil" text size="small" aria-label="Edit transaction" @click="openEdit(data)" />
+                    <Button icon="pi pi-trash" text size="small" aria-label="Delete transaction" @click="confirmDelete(data)" />
                 </template>
             </Column>
         </DataTable>
