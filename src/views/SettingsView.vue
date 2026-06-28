@@ -588,6 +588,12 @@ getVersion().then(v => appVersion.value = v);
                 <span class="about-path">{{ appDataDir || "—" }}</span>
                 <span class="about-label">Privacy</span>
                 <span>All data is stored locally on this device. Nothing is sent to the cloud.</span>
+                <span class="about-label">macOS install</span>
+                <span>
+                    If macOS says <em>"Suvarix is damaged"</em>, open Terminal and run:<br />
+                    <code>xattr -cr /Applications/Suvarix.app</code><br />
+                    Then launch the app normally. This removes the quarantine flag added by macOS on downloaded files.
+                </span>
             </div>
         </div>
     </div>

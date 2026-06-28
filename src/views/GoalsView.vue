@@ -213,6 +213,7 @@ onMounted(() => {
                 <div class="goal-progress-wrap">
                     <ProgressBar
                         :value="g.progress"
+                        :showValue="false"
                         :pt="{ value: { class: g.achieved ? 'goal-bar-achieved' : 'goal-bar-active' } }"
                         class="goal-bar"
                     />
