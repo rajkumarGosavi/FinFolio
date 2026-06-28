@@ -4,10 +4,12 @@ import { useConfirm } from "primevue/useconfirm";
 import { useTransactionsStore } from "@/stores/transactions";
 import { useCurrencyFormat } from "@/composables/useCurrencyFormat";
 import { strToDate, dateToStr } from "@/composables/useDateConvert";
+import { useGamificationSafe } from "@/composables/useGamification";
 
 const store = useTransactionsStore();
 const confirm = useConfirm();
 const { formatINR } = useCurrencyFormat();
+const { awardXP, updateStreak } = useGamificationSafe();
 
 const showDialog = ref(false);
 const editItem = ref<any>(null);
@@ -70,6 +72,8 @@ async function save() {
             await store.update(editItem.value.id, payload);
         } else {
             await store.add(payload);
+            await awardXP("transaction_logged", 5);
+            await updateStreak("transaction");
         }
         showDialog.value = false;
     } finally {

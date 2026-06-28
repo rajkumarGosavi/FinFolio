@@ -19,6 +19,8 @@ pub mod backup;
 pub mod data_sources;
 pub mod goals;
 pub mod reminders;
+#[cfg(feature = "gamification")]
+pub mod gamification;
 
 use db::DbState;
 
@@ -206,6 +208,17 @@ pub fn run() {
             analytics::commands::get_perf_stats,
             analytics::commands::export_analytics,
             analytics::commands::clear_analytics,
+            // gamification (only compiled with --features gamification)
+            #[cfg(feature = "gamification")]
+            gamification::commands::bootstrap_gamification,
+            #[cfg(feature = "gamification")]
+            gamification::commands::get_gamification_stats,
+            #[cfg(feature = "gamification")]
+            gamification::commands::award_xp,
+            #[cfg(feature = "gamification")]
+            gamification::commands::update_streak,
+            #[cfg(feature = "gamification")]
+            gamification::commands::check_and_award_badges,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

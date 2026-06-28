@@ -5,22 +5,29 @@ import { useCurrencyFormat } from "@/composables/useCurrencyFormat";
 import { useChartColors } from "@/composables/useChartColors";
 import { useMilestoneCheck } from "@/composables/useMilestoneCheck";
 import { useGoalCheck } from "@/composables/useGoalCheck";
+import { useGamificationStore } from "@/stores/gamification";
 import { Doughnut } from "vue-chartjs";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
+
+const isGamified = import.meta.env.VITE_GAMIFICATION === "true";
 
 const portfolio = usePortfolioStore();
 const { formatCompact, formatPercent } = useCurrencyFormat();
 const { textColor, PALETTE } = useChartColors();
 const { checkMilestones } = useMilestoneCheck();
 const { checkGoals } = useGoalCheck();
+const gamification = useGamificationStore();
 
 onMounted(async () => {
     await portfolio.fetchAll();
     if (portfolio.netWorth) {
         checkMilestones(portfolio.netWorth.netWorth);
         checkGoals(portfolio.netWorth.totalAssets);
+    }
+    if (isGamified) {
+        await gamification.fetch();
     }
 });
 
@@ -84,6 +91,8 @@ const chartOptions = computed(() => ({
                     </div>
                 </div>
             </div>
+
+            <GamificationWidget v-if="isGamified" />
 
             <div class="card chart-card" v-if="portfolio.allocation.length > 0">
                 <h3>Asset Allocation</h3>

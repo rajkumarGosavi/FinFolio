@@ -24,6 +24,7 @@ declare module 'vue' {
     EquityPanel: typeof import('./components/portfolio/EquityPanel.vue')['default']
     FdPanel: typeof import('./components/portfolio/FdPanel.vue')['default']
     FileUpload: typeof import('primevue/fileupload')['default']
+    GamificationWidget: typeof import('./components/GamificationWidget.vue')['default']
     GoldPanel: typeof import('./components/portfolio/GoldPanel.vue')['default']
     InputNumber: typeof import('primevue/inputnumber')['default']
     InputText: typeof import('primevue/inputtext')['default']

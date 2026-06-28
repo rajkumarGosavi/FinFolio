@@ -2,6 +2,7 @@ import { ref } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { usePortfolioStore } from "@/stores/portfolio";
 import { useAnalytics } from "@/composables/useAnalytics";
+import { useGamificationSafe } from "@/composables/useGamification";
 
 export function useHoldingCrud(addCmd: string, updateCmd: string, deleteCmd: string, fetchFn: () => Promise<void>) {
     const showDialog = ref(false);
@@ -9,6 +10,7 @@ export function useHoldingCrud(addCmd: string, updateCmd: string, deleteCmd: str
     const loading = ref(false);
     const portfolio = usePortfolioStore();
     const { track } = useAnalytics();
+    const { checkBadges } = useGamificationSafe();
 
     function openAdd() {
         editItem.value = null;
@@ -32,6 +34,7 @@ export function useHoldingCrud(addCmd: string, updateCmd: string, deleteCmd: str
                 await invoke(updateCmd, { id: editItem.value.id, payload });
             } else {
                 await invoke(addCmd, { payload });
+                await checkBadges({ checkFirstInvestment: true, checkDiversification: true });
             }
             track("holding_saved", { cmd: addCmd });
             await fetchFn();

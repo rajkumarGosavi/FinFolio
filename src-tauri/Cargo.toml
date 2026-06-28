@@ -1,6 +1,6 @@
 [package]
 name = "suvarix"
-version = "0.4.0"
+version = "0.5.0"
 description = "Suvarix — Personal Finance Tracker"
 authors = ["Rajkumar"]
 license = "LicenseRef-Proprietary"
@@ -45,6 +45,10 @@ rand        = "0.8"
 zeroize     = "1.7"
 hex         = "0.4"
 aes-gcm     = "0.10"
+
+[features]
+default = []
+gamification = []
 
 [profile.release]
 codegen-units = 1

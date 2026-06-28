@@ -5,9 +5,11 @@ import { useToast } from "primevue/usetoast";
 import { useRemindersStore, type BillPayload, type RecurringTxPayload, type UpcomingReminder, type RecurringTx } from "@/stores/reminders";
 import { useCurrencyFormat } from "@/composables/useCurrencyFormat";
 import { strToDate, dateToStr } from "@/composables/useDateConvert";
+import { useGamificationSafe } from "@/composables/useGamification";
 
 const store = useRemindersStore();
 const confirm = useConfirm();
+const { awardXP, checkBadges } = useGamificationSafe();
 const toast = useToast();
 const { formatINR } = useCurrencyFormat();
 
@@ -79,6 +81,8 @@ async function submitMarkPaid() {
             payForm.notes || null,
         );
         toast.add({ severity: "success", summary: "Marked paid", detail: `${payTarget.value.name} recorded.`, life: 3000 });
+        await awardXP("bill_paid", 10);
+        await checkBadges({ checkDebtDestroyer: payTarget.value.source === "loan" });
         showPayDialog.value = false;
     } catch (e: any) {
         toast.add({ severity: "error", summary: "Failed", detail: String(e?.message ?? e), life: 4000 });

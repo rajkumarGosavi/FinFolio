@@ -27,6 +27,9 @@ pub fn run_migrations(conn: &Connection) -> Result<()> {
     // MIGRATION_013: onboarding_complete flag — INSERT OR IGNORE is idempotent;
     // UPDATE flips to 'true' for existing users who already have a password set
     conn.execute_batch(MIGRATION_013).map_err(|e| AppError::Database(e.to_string()))?;
+    // MIGRATION_014: gamification tables — only when feature is enabled
+    #[cfg(feature = "gamification")]
+    conn.execute_batch(MIGRATION_014).map_err(|e| AppError::Database(e.to_string()))?;
     Ok(())
 }
 
@@ -436,6 +439,48 @@ UPDATE app_settings
 SET value = 'true'
 WHERE key = 'onboarding_complete'
   AND (SELECT value FROM app_settings WHERE key = 'password_hash') != '';
+";
+
+#[cfg(feature = "gamification")]
+const MIGRATION_014: &str = "
+CREATE TABLE IF NOT EXISTS user_xp (
+    id          INTEGER PRIMARY KEY DEFAULT 1,
+    total_xp    INTEGER NOT NULL DEFAULT 0,
+    level       TEXT NOT NULL DEFAULT 'Rookie',
+    updated_at  TEXT DEFAULT (datetime('now'))
+);
+INSERT OR IGNORE INTO user_xp (id, total_xp, level) VALUES (1, 0, 'Rookie');
+
+CREATE TABLE IF NOT EXISTS badges (
+    id          TEXT PRIMARY KEY,
+    name        TEXT NOT NULL,
+    description TEXT NOT NULL,
+    icon        TEXT NOT NULL,
+    xp_reward   INTEGER NOT NULL DEFAULT 20
+);
+
+CREATE TABLE IF NOT EXISTS user_badges (
+    badge_id    TEXT PRIMARY KEY REFERENCES badges(id),
+    earned_at   TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS streaks (
+    streak_type         TEXT PRIMARY KEY,
+    current_count       INTEGER NOT NULL DEFAULT 0,
+    best_count          INTEGER NOT NULL DEFAULT 0,
+    last_activity_date  TEXT,
+    updated_at          TEXT DEFAULT (datetime('now'))
+);
+INSERT OR IGNORE INTO streaks (streak_type, current_count, best_count) VALUES ('transaction', 0, 0);
+
+INSERT OR IGNORE INTO badges (id, name, description, icon, xp_reward) VALUES
+    ('first_investment',     'First Investment',       'Added your first holding',                         '🌱', 20),
+    ('goal_getter',          'Goal Getter',            'Achieved your first financial goal',               '🎯', 20),
+    ('milestone_hunter',     'Milestone Hunter',       'Crossed your first net worth milestone',           '🏔️', 20),
+    ('diversified_investor', 'Diversified Investor',   'Holdings across 5 or more asset classes',         '🌍', 20),
+    ('debt_destroyer',       'Debt Destroyer',         'Paid off a liability or loan',                     '⚔️', 20),
+    ('crore_club',           'Crore Club',             'Net worth crossed Rs 1 Crore',                     '💎', 20),
+    ('centurion',            'Centurion',              'Earned 100 XP total',                              '💯', 20);
 ";
 
 const MIGRATION_011: &str = "
