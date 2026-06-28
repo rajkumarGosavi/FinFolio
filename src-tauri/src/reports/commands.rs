@@ -1,7 +1,7 @@
 use tauri::State;
 use serde::{Deserialize, Serialize};
 use crate::db::DbState;
-use crate::error::{AppError, Result};
+use crate::error::Result;
 use super::capital_gains;
 
 pub use capital_gains::CapitalGainsReport;
@@ -17,13 +17,13 @@ pub struct NetWorthSnapshot {
 
 #[tauri::command]
 pub fn get_capital_gains(fy: String, method: String, state: State<DbState>) -> Result<CapitalGainsReport> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     capital_gains::calculate(&conn, &fy, &method)
 }
 
 #[tauri::command]
 pub fn get_net_worth_history(months: i64, state: State<DbState>) -> Result<Vec<NetWorthSnapshot>> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     let mut stmt = conn.prepare(
         "SELECT snapshot_date, total_assets, total_liabilities, net_worth
          FROM net_worth_snapshots
@@ -39,7 +39,7 @@ pub fn get_net_worth_history(months: i64, state: State<DbState>) -> Result<Vec<N
 
 #[tauri::command]
 pub fn take_net_worth_snapshot(state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     let summary = crate::portfolio::calculator::calc_net_worth(&conn)?;
     conn.execute(
         "INSERT OR REPLACE INTO net_worth_snapshots

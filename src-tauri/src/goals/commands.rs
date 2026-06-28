@@ -1,6 +1,6 @@
 use tauri::State;
 use crate::db::DbState;
-use crate::error::{AppError, Result};
+use crate::error::Result;
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -37,7 +37,7 @@ pub struct GoalPayload {
 
 #[tauri::command]
 pub fn list_goals(state: State<DbState>) -> Result<Vec<Goal>> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     let mut stmt = conn.prepare(
         "SELECT id, name, category, target_amount, target_date, notes, achieved_at, created_at, updated_at
          FROM goals ORDER BY target_date ASC",
@@ -60,7 +60,7 @@ pub fn list_goals(state: State<DbState>) -> Result<Vec<Goal>> {
 
 #[tauri::command]
 pub fn add_goal(payload: GoalPayload, state: State<DbState>) -> Result<i64> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "INSERT INTO goals (name, category, target_amount, target_date, notes)
          VALUES (?1, ?2, ?3, ?4, ?5)",
@@ -77,7 +77,7 @@ pub fn add_goal(payload: GoalPayload, state: State<DbState>) -> Result<i64> {
 
 #[tauri::command]
 pub fn update_goal(id: i64, payload: GoalPayload, state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "UPDATE goals SET name=?1, category=?2, target_amount=?3, target_date=?4,
          notes=?5, achieved_at=NULL, updated_at=datetime('now') WHERE id=?6",
@@ -95,7 +95,7 @@ pub fn update_goal(id: i64, payload: GoalPayload, state: State<DbState>) -> Resu
 
 #[tauri::command]
 pub fn delete_goal(id: i64, state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute("DELETE FROM goals WHERE id=?1", [id])?;
     Ok(())
 }
@@ -103,7 +103,7 @@ pub fn delete_goal(id: i64, state: State<DbState>) -> Result<()> {
 /// Manually mark a goal as achieved regardless of current net worth.
 #[tauri::command]
 pub fn mark_goal_achieved(id: i64, state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "UPDATE goals SET achieved_at = date('now'), updated_at = datetime('now') WHERE id = ?1",
         [id],
@@ -115,7 +115,7 @@ pub fn mark_goal_achieved(id: i64, state: State<DbState>) -> Result<()> {
 /// returns only the newly achieved goals so the caller can notify.
 #[tauri::command]
 pub fn check_goal_achievements(total_assets: f64, state: State<DbState>) -> Result<Vec<GoalAchievement>> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     let mut stmt = conn.prepare(
         "SELECT id, name, target_amount, category FROM goals
          WHERE target_amount <= ?1 AND (achieved_at IS NULL)"

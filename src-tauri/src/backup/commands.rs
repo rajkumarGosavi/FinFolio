@@ -96,7 +96,7 @@ pub fn export_sync_backup(
     password: String,
     state: State<DbState>,
 ) -> Result<ExportSummary> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
 
     // Serialize all data tables
     let mut tables: HashMap<String, Vec<serde_json::Value>> = HashMap::new();
@@ -175,7 +175,7 @@ pub fn import_sync_backup(
         .map_err(|e| AppError::Parse(format!("parse backup: {e}")))?;
 
     // Write to DB
-    let mut conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let mut conn = state.0.get()?;
 
     // FK checks off during bulk replace so delete/insert order doesn't matter
     conn.execute_batch("PRAGMA foreign_keys = OFF")

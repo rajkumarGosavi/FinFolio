@@ -5,7 +5,7 @@ use super::master_password;
 
 #[tauri::command]
 pub fn is_password_set(state: State<DbState>) -> Result<bool> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     let hash: String = conn
         .query_row(
             "SELECT value FROM app_settings WHERE key = 'password_hash'",
@@ -20,7 +20,7 @@ pub fn is_password_set(state: State<DbState>) -> Result<bool> {
 pub fn setup_master_password(password: String, state: State<DbState>) -> Result<()> {
     let salt = master_password::generate_salt();
     let hash = master_password::hash_password(&password, &salt)?;
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "UPDATE app_settings SET value = ?1 WHERE key = 'password_hash'",
         [&hash],
@@ -34,7 +34,7 @@ pub fn setup_master_password(password: String, state: State<DbState>) -> Result<
 
 #[tauri::command]
 pub fn verify_master_password(password: String, state: State<DbState>) -> Result<bool> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     let hash: String = conn
         .query_row("SELECT value FROM app_settings WHERE key = 'password_hash'", [], |r| r.get(0))
         .map_err(|e| AppError::Database(e.to_string()))?;

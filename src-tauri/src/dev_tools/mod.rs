@@ -11,7 +11,7 @@ pub fn is_dev_build() -> bool {
 
 #[tauri::command]
 pub fn is_dummy_data_seeded(state: State<DbState>) -> Result<bool> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     let count: i64 = conn.query_row(
         "SELECT COUNT(*) FROM accounts WHERE provider = ?1",
         [DUMMY_TAG],
@@ -25,7 +25,7 @@ pub fn seed_dummy_data(state: State<DbState>) -> Result<()> {
     if !cfg!(debug_assertions) {
         return Err(AppError::Validation("Not available in release builds".into()));
     }
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
 
     let already: i64 = conn.query_row(
         "SELECT COUNT(*) FROM accounts WHERE provider = ?1",
@@ -236,7 +236,7 @@ pub fn clear_dummy_data(state: State<DbState>) -> Result<()> {
     if !cfg!(debug_assertions) {
         return Err(AppError::Validation("Not available in release builds".into()));
     }
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
 
     // Remove all tables that reference accounts(id) WITHOUT ON DELETE CASCADE,
     // before deleting the accounts row (FK enforcement is ON).

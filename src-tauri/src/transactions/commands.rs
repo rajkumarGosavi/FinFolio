@@ -1,11 +1,11 @@
 use tauri::State;
 use crate::db::DbState;
-use crate::error::{AppError, Result};
+use crate::error::Result;
 use crate::models::transaction::{AddTransactionPayload, Transaction, TransactionFilter};
 
 #[tauri::command]
 pub fn list_transactions(filter: TransactionFilter, state: State<DbState>) -> Result<Vec<Transaction>> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     let limit = filter.limit.unwrap_or(100);
     let offset = filter.offset.unwrap_or(0);
 
@@ -44,7 +44,7 @@ pub fn list_transactions(filter: TransactionFilter, state: State<DbState>) -> Re
 
 #[tauri::command]
 pub fn add_transaction(payload: AddTransactionPayload, state: State<DbState>) -> Result<i64> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "INSERT INTO transactions (date, type, asset_class, account_id, holding_id,
          amount, quantity, price, category, description, notes)
@@ -58,7 +58,7 @@ pub fn add_transaction(payload: AddTransactionPayload, state: State<DbState>) ->
 
 #[tauri::command]
 pub fn update_transaction(id: i64, payload: AddTransactionPayload, state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "UPDATE transactions SET date=?1, type=?2, asset_class=?3, amount=?4,
          quantity=?5, price=?6, category=?7, description=?8, notes=?9,
@@ -72,7 +72,7 @@ pub fn update_transaction(id: i64, payload: AddTransactionPayload, state: State<
 
 #[tauri::command]
 pub fn delete_transaction(id: i64, state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute("DELETE FROM transactions WHERE id=?1", [id])?;
     Ok(())
 }

@@ -32,7 +32,7 @@ pub struct ImportResult {
 
 #[tauri::command]
 pub fn import_cas_mf(holdings: Vec<CasHoldingInput>, state: State<DbState>) -> Result<ImportResult> {
-    let mut conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let mut conn = state.0.get()?;
 
     // Ensure a "MF Central CAS" account exists
     conn.execute(
@@ -113,7 +113,7 @@ pub fn save_zerodha_config(
     api_secret: String,
     state: State<DbState>,
 ) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "INSERT INTO app_settings (key, value) VALUES ('zerodha_api_key', ?1)
          ON CONFLICT(key) DO UPDATE SET value=excluded.value",
@@ -129,7 +129,7 @@ pub fn save_zerodha_config(
 
 #[tauri::command]
 pub fn get_zerodha_status(state: State<DbState>) -> Result<ZerodhaStatus> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
 
     let api_key: Option<String> = conn
         .query_row(
@@ -178,7 +178,7 @@ pub fn get_zerodha_status(state: State<DbState>) -> Result<ZerodhaStatus> {
 
 #[tauri::command]
 pub fn disconnect_zerodha(state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "DELETE FROM app_settings WHERE key IN (
             'zerodha_api_key',
@@ -200,10 +200,7 @@ pub async fn start_zerodha_login(
 ) -> Result<()> {
     // Read credentials (lock → read → release)
     let (api_key, api_secret) = {
-        let conn = state
-            .0
-            .lock()
-            .map_err(|_| AppError::Database("lock error".into()))?;
+        let conn = state.0.get()?;
 
         let api_key = conn
             .query_row(
@@ -230,10 +227,7 @@ pub async fn start_zerodha_login(
     // Store access_token + today's date (lock → write → release)
     let today = chrono::Local::now().format("%Y-%m-%d").to_string();
     {
-        let conn = state
-            .0
-            .lock()
-            .map_err(|_| AppError::Database("lock error".into()))?;
+        let conn = state.0.get()?;
 
         conn.execute(
             "INSERT INTO app_settings (key, value) VALUES ('zerodha_access_token', ?1)
@@ -256,10 +250,7 @@ pub async fn start_zerodha_login(
 pub async fn sync_zerodha_holdings(state: State<'_, DbState>) -> Result<SyncResult> {
     // Read credentials (lock → read → release)
     let (api_key, access_token) = {
-        let conn = state
-            .0
-            .lock()
-            .map_err(|_| AppError::Database("lock error".into()))?;
+        let conn = state.0.get()?;
 
         let api_key = conn
             .query_row(
@@ -291,8 +282,8 @@ pub async fn sync_zerodha_holdings(state: State<'_, DbState>) -> Result<SyncResu
 
     // Write to DB (lock → write → release)
     {
-        let mut conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
-        broker::write_broker_holdings(&mut conn, "zerodha", "Zerodha", &holdings)?;
+        let mut conn = state.0.get()?;
+        broker::write_broker_holdings(&mut *conn, "zerodha", "Zerodha", &holdings)?;
     }
 
     Ok(SyncResult { synced, errors: vec![] })
@@ -316,7 +307,7 @@ pub fn save_upstox_config(
     api_secret: String,
     state: State<DbState>,
 ) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "INSERT INTO app_settings (key, value) VALUES ('upstox_api_key', ?1)
          ON CONFLICT(key) DO UPDATE SET value=excluded.value",
@@ -332,7 +323,7 @@ pub fn save_upstox_config(
 
 #[tauri::command]
 pub fn get_upstox_status(state: State<DbState>) -> Result<UpstoxStatus> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
 
     let api_key: Option<String> = conn
         .query_row(
@@ -380,7 +371,7 @@ pub async fn start_upstox_login(
 ) -> Result<()> {
     // Read credentials (lock → read → release)
     let (api_key, api_secret) = {
-        let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+        let conn = state.0.get()?;
         let api_key = conn
             .query_row(
                 "SELECT value FROM app_settings WHERE key='upstox_api_key'",
@@ -404,7 +395,7 @@ pub async fn start_upstox_login(
     // Store token + today's date (lock → write → release)
     let today = chrono::Local::now().format("%Y-%m-%d").to_string();
     {
-        let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+        let conn = state.0.get()?;
         conn.execute(
             "INSERT INTO app_settings (key, value) VALUES ('upstox_access_token', ?1)
              ON CONFLICT(key) DO UPDATE SET value=excluded.value",
@@ -424,7 +415,7 @@ pub async fn start_upstox_login(
 pub async fn sync_upstox_holdings(state: State<'_, DbState>) -> Result<SyncResult> {
     // Read credentials (lock → read → release)
     let (api_key, access_token) = {
-        let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+        let conn = state.0.get()?;
         let api_key = conn
             .query_row(
                 "SELECT value FROM app_settings WHERE key='upstox_api_key'",
@@ -449,8 +440,8 @@ pub async fn sync_upstox_holdings(state: State<'_, DbState>) -> Result<SyncResul
 
     // Write to DB (lock → write → release)
     {
-        let mut conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
-        broker::write_broker_holdings(&mut conn, "upstox", "Upstox", &holdings)?;
+        let mut conn = state.0.get()?;
+        broker::write_broker_holdings(&mut *conn, "upstox", "Upstox", &holdings)?;
     }
 
     Ok(SyncResult { synced, errors: vec![] })
@@ -458,7 +449,7 @@ pub async fn sync_upstox_holdings(state: State<'_, DbState>) -> Result<SyncResul
 
 #[tauri::command]
 pub fn disconnect_upstox(state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "DELETE FROM app_settings WHERE key IN (
             'upstox_api_key',
@@ -489,7 +480,7 @@ pub fn save_angel_config(
     client_id: String,
     state: State<DbState>,
 ) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "INSERT INTO app_settings (key, value) VALUES ('angel_api_key', ?1)
          ON CONFLICT(key) DO UPDATE SET value=excluded.value",
@@ -505,7 +496,7 @@ pub fn save_angel_config(
 
 #[tauri::command]
 pub fn get_angel_status(state: State<DbState>) -> Result<AngelStatus> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
 
     let api_key: Option<String> = conn
         .query_row(
@@ -554,7 +545,7 @@ pub async fn login_angel(
 ) -> Result<()> {
     // Read credentials (lock → read → release)
     let (api_key, client_id) = {
-        let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+        let conn = state.0.get()?;
         let api_key = conn
             .query_row(
                 "SELECT value FROM app_settings WHERE key='angel_api_key'",
@@ -578,7 +569,7 @@ pub async fn login_angel(
     // Store JWT + today's date (lock → write → release)
     let today = chrono::Local::now().format("%Y-%m-%d").to_string();
     {
-        let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+        let conn = state.0.get()?;
         conn.execute(
             "INSERT INTO app_settings (key, value) VALUES ('angel_jwt_token', ?1)
              ON CONFLICT(key) DO UPDATE SET value=excluded.value",
@@ -598,7 +589,7 @@ pub async fn login_angel(
 pub async fn sync_angel_holdings(state: State<'_, DbState>) -> Result<SyncResult> {
     // Read credentials (lock → read → release)
     let (api_key, jwt_token) = {
-        let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+        let conn = state.0.get()?;
         let api_key = conn
             .query_row(
                 "SELECT value FROM app_settings WHERE key='angel_api_key'",
@@ -625,8 +616,8 @@ pub async fn sync_angel_holdings(state: State<'_, DbState>) -> Result<SyncResult
 
     // Write to DB (lock → write → release)
     {
-        let mut conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
-        broker::write_broker_holdings(&mut conn, "angel_one", "Angel One", &holdings)?;
+        let mut conn = state.0.get()?;
+        broker::write_broker_holdings(&mut *conn, "angel_one", "Angel One", &holdings)?;
     }
 
     Ok(SyncResult { synced, errors: vec![] })
@@ -634,7 +625,7 @@ pub async fn sync_angel_holdings(state: State<'_, DbState>) -> Result<SyncResult
 
 #[tauri::command]
 pub fn disconnect_angel(state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "DELETE FROM app_settings WHERE key IN (
             'angel_api_key',
@@ -688,8 +679,8 @@ pub fn import_broker_equity_csv(
 
     let skipped = (rows.len() as i64) - (holdings.len() as i64);
 
-    let mut conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
-    let imported = broker::write_broker_holdings(&mut conn, &broker, &display_name, &holdings)?;
+    let mut conn = state.0.get()?;
+    let imported = broker::write_broker_holdings(&mut *conn, &broker, &display_name, &holdings)?;
 
     Ok(ImportResult { imported, skipped })
 }
@@ -711,7 +702,7 @@ pub fn import_mf_csv(
 ) -> Result<ImportResult> {
     let rows = csv_importer::parse_mf_csv(&csv_content)?;
 
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
 
     conn.execute(
         "INSERT OR IGNORE INTO accounts
@@ -769,7 +760,7 @@ pub fn import_generic_asset_csv(
     csv_content: String,
     state: State<DbState>,
 ) -> Result<ImportResult> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     match asset_type.as_str() {
         "fd"      => csv_importer::import_fd_from_csv(&csv_content, &conn),
         "gold"    => csv_importer::import_gold_from_csv(&csv_content, &conn),

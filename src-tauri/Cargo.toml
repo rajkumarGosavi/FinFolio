@@ -1,6 +1,6 @@
 [package]
 name = "suvarix"
-version = "0.5.0"
+version = "0.5.1"
 description = "Suvarix — Personal Finance Tracker"
 authors = ["Rajkumar"]
 license = "LicenseRef-Proprietary"
@@ -26,6 +26,8 @@ serde      = { version = "1", features = ["derive"] }
 serde_json = "1"
 
 rusqlite   = { version = "0.31", features = ["bundled", "backup"] }
+r2d2        = "0.8"
+r2d2_sqlite = "0.24"
 
 tokio    = { version = "1", features = ["full"] }
 reqwest  = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }

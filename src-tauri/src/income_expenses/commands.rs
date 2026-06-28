@@ -1,7 +1,7 @@
 use tauri::State;
 use serde::{Deserialize, Serialize};
 use crate::db::DbState;
-use crate::error::{AppError, Result};
+use crate::error::Result;
 use crate::models::budget::BudgetStatus;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -30,7 +30,7 @@ pub struct SetBudgetPayload {
 
 #[tauri::command]
 pub fn get_category_summary(period: String, state: State<DbState>) -> Result<Vec<CategorySummary>> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     let (start, end) = period_bounds(&period);
     let mut stmt = conn.prepare(
         "SELECT category, type, SUM(amount) as total, COUNT(*) as cnt
@@ -47,7 +47,7 @@ pub fn get_category_summary(period: String, state: State<DbState>) -> Result<Vec
 
 #[tauri::command]
 pub fn get_budget_status(state: State<DbState>) -> Result<Vec<BudgetStatus>> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     let (start, end) = current_month_bounds();
     let mut stmt = conn.prepare(
         "SELECT b.category, b.monthly_limit,
@@ -79,7 +79,7 @@ pub fn get_budget_status(state: State<DbState>) -> Result<Vec<BudgetStatus>> {
 
 #[tauri::command]
 pub fn set_budget(payload: SetBudgetPayload, state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "INSERT INTO budgets (category, monthly_limit) VALUES (?1, ?2)
          ON CONFLICT(category, period) DO UPDATE SET monthly_limit=excluded.monthly_limit",
@@ -90,7 +90,7 @@ pub fn set_budget(payload: SetBudgetPayload, state: State<DbState>) -> Result<()
 
 #[tauri::command]
 pub fn get_monthly_trend(months: i64, state: State<DbState>) -> Result<Vec<MonthlyTrend>> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     let mut stmt = conn.prepare(
         "SELECT strftime('%Y-%m', date) as month,
                 SUM(CASE WHEN type='income' THEN amount ELSE 0 END) as income,

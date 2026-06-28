@@ -34,6 +34,12 @@ impl From<rusqlite::Error> for AppError {
     }
 }
 
+impl From<r2d2::Error> for AppError {
+    fn from(e: r2d2::Error) -> Self {
+        AppError::Database(e.to_string())
+    }
+}
+
 impl From<std::io::Error> for AppError {
     fn from(e: std::io::Error) -> Self {
         AppError::Io(e.to_string())

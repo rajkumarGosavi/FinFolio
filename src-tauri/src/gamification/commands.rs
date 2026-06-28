@@ -193,7 +193,7 @@ fn has_holding_in(conn: &Connection, table: &str) -> bool {
 
 #[tauri::command]
 pub fn bootstrap_gamification(state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock failed".into()))?;
+    let conn = state.0.get()?;
 
     let already_done: bool = conn
         .query_row(
@@ -285,7 +285,7 @@ pub fn bootstrap_gamification(state: State<DbState>) -> Result<()> {
 
 #[tauri::command]
 pub fn get_gamification_stats(state: State<DbState>) -> Result<GamificationStats> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock failed".into()))?;
+    let conn = state.0.get()?;
     seed_xp_row(&conn)?;
 
     let (total_xp, level, level_progress_pct, next_level_xp_needed) = {
@@ -356,7 +356,7 @@ pub fn get_gamification_stats(state: State<DbState>) -> Result<GamificationStats
 
 #[tauri::command]
 pub fn award_xp(reason: String, amount: i32, state: State<DbState>) -> Result<XpAwardResult> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock failed".into()))?;
+    let conn = state.0.get()?;
     let _ = reason;
     let (new_xp, level_changed, new_level) = award_xp_internal(&conn, amount)?;
 
@@ -377,7 +377,7 @@ pub fn award_xp(reason: String, amount: i32, state: State<DbState>) -> Result<Xp
 
 #[tauri::command]
 pub fn update_streak(streak_type: String, state: State<DbState>) -> Result<StreakUpdateResult> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock failed".into()))?;
+    let conn = state.0.get()?;
 
     let today = chrono::Local::now().date_naive().to_string();
 
@@ -445,7 +445,7 @@ pub fn update_streak(streak_type: String, state: State<DbState>) -> Result<Strea
 
 #[tauri::command]
 pub fn check_and_award_badges(context: BadgeContext, state: State<DbState>) -> Result<Vec<Badge>> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock failed".into()))?;
+    let conn = state.0.get()?;
     let mut earned = Vec::new();
 
     if context.check_first_investment {

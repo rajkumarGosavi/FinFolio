@@ -16,8 +16,8 @@ pub struct BrokerHolding {
 /// Upsert broker account + atomically replace all its equity holdings.
 ///
 /// Called from every `sync_*_holdings` command after fetching from the remote API.
-/// The connection must be obtained with `let mut conn = state.0.lock()...?;` so the
-/// transaction borrow can get `&mut Connection`.
+/// The connection must be obtained with `let mut conn = state.0.get()?;` (pool-acquired).
+/// Pass `&mut *conn` at the call site — `PooledConnection: DerefMut<Target = Connection>`.
 pub fn write_broker_holdings(
     conn: &mut rusqlite::Connection,
     provider: &str,

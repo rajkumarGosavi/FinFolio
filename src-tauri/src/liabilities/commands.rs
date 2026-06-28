@@ -16,7 +16,7 @@ pub struct EmiRow {
 
 #[tauri::command]
 pub fn list_loans(state: State<DbState>) -> Result<Vec<Loan>> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     let mut stmt = conn.prepare(
         "SELECT id, loan_type, lender_name, account_number, principal, outstanding,
                 interest_rate, emi_amount, tenure_months, disbursement_date, next_emi_date,
@@ -33,7 +33,7 @@ pub fn list_loans(state: State<DbState>) -> Result<Vec<Loan>> {
 
 #[tauri::command]
 pub fn add_loan(payload: AddLoanPayload, state: State<DbState>) -> Result<i64> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "INSERT INTO loans (loan_type, lender_name, account_number, principal, outstanding,
          interest_rate, emi_amount, tenure_months, disbursement_date, next_emi_date)
@@ -47,7 +47,7 @@ pub fn add_loan(payload: AddLoanPayload, state: State<DbState>) -> Result<i64> {
 
 #[tauri::command]
 pub fn update_loan(id: i64, payload: AddLoanPayload, state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "UPDATE loans SET loan_type=?1, lender_name=?2, account_number=?3, principal=?4,
          outstanding=?5, interest_rate=?6, emi_amount=?7, tenure_months=?8,
@@ -64,14 +64,14 @@ pub fn update_loan(id: i64, payload: AddLoanPayload, state: State<DbState>) -> R
 
 #[tauri::command]
 pub fn delete_loan(id: i64, state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute("DELETE FROM loans WHERE id=?1", [id])?;
     Ok(())
 }
 
 #[tauri::command]
 pub fn get_amortization_schedule(loan_id: i64, state: State<DbState>) -> Result<Vec<EmiRow>> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     let loan: Loan = conn.query_row(
         "SELECT id, loan_type, lender_name, account_number, principal, outstanding,
                 interest_rate, emi_amount, tenure_months, disbursement_date, next_emi_date,
@@ -102,7 +102,7 @@ pub fn get_amortization_schedule(loan_id: i64, state: State<DbState>) -> Result<
 
 #[tauri::command]
 pub fn list_credit_cards(state: State<DbState>) -> Result<Vec<CreditCard>> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     let mut stmt = conn.prepare(
         "SELECT id, bank_name, card_name, last_four, credit_limit, current_balance,
                 due_date, min_payment, updated_at FROM credit_cards ORDER BY bank_name"
@@ -117,7 +117,7 @@ pub fn list_credit_cards(state: State<DbState>) -> Result<Vec<CreditCard>> {
 
 #[tauri::command]
 pub fn add_credit_card(payload: AddCreditCardPayload, state: State<DbState>) -> Result<i64> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "INSERT INTO credit_cards (bank_name, card_name, last_four, credit_limit,
          current_balance, due_date, min_payment) VALUES (?1,?2,?3,?4,?5,?6,?7)",
@@ -129,7 +129,7 @@ pub fn add_credit_card(payload: AddCreditCardPayload, state: State<DbState>) -> 
 
 #[tauri::command]
 pub fn update_credit_card(id: i64, payload: AddCreditCardPayload, state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "UPDATE credit_cards SET bank_name=?1, card_name=?2, last_four=?3,
          credit_limit=?4, current_balance=?5, due_date=?6, min_payment=?7,
@@ -145,7 +145,7 @@ pub fn update_credit_card(id: i64, payload: AddCreditCardPayload, state: State<D
 
 #[tauri::command]
 pub fn delete_credit_card(id: i64, state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute("DELETE FROM credit_cards WHERE id=?1", [id])?;
     Ok(())
 }

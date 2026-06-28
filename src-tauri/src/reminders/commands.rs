@@ -117,7 +117,7 @@ fn days_in_month(year: i32, month: u32) -> u32 {
 
 #[tauri::command]
 pub fn list_bills(state: State<DbState>) -> Result<Vec<Bill>> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     let mut stmt = conn.prepare(
         "SELECT id, name, category, amount, frequency, next_due_date, notes, is_active, created_at
          FROM bills ORDER BY next_due_date ASC"
@@ -132,7 +132,7 @@ pub fn list_bills(state: State<DbState>) -> Result<Vec<Bill>> {
 
 #[tauri::command]
 pub fn add_bill(payload: BillPayload, state: State<DbState>) -> Result<i64> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "INSERT INTO bills (name, category, amount, frequency, next_due_date, notes)
          VALUES (?1,?2,?3,?4,?5,?6)",
@@ -144,7 +144,7 @@ pub fn add_bill(payload: BillPayload, state: State<DbState>) -> Result<i64> {
 
 #[tauri::command]
 pub fn update_bill(id: i64, payload: BillPayload, state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "UPDATE bills SET name=?1, category=?2, amount=?3, frequency=?4,
          next_due_date=?5, notes=?6, updated_at=datetime('now') WHERE id=?7",
@@ -156,7 +156,7 @@ pub fn update_bill(id: i64, payload: BillPayload, state: State<DbState>) -> Resu
 
 #[tauri::command]
 pub fn delete_bill(id: i64, state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute("DELETE FROM bills WHERE id=?1", [id])?;
     Ok(())
 }
@@ -165,7 +165,7 @@ pub fn delete_bill(id: i64, state: State<DbState>) -> Result<()> {
 
 #[tauri::command]
 pub fn get_upcoming_reminders(days: i32, state: State<DbState>) -> Result<Vec<UpcomingReminder>> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     let today = Local::now().date_naive();
     let mut reminders: Vec<UpcomingReminder> = vec![];
 
@@ -268,7 +268,7 @@ pub fn mark_reminder_paid(
     notes: Option<String>,
     state: State<DbState>,
 ) -> Result<()> {
-    let mut conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let mut conn = state.0.get()?;
 
     match source.as_str() {
         "loan" => {
@@ -337,7 +337,7 @@ pub fn mark_reminder_paid(
 
 #[tauri::command]
 pub fn list_recurring(state: State<DbState>) -> Result<Vec<RecurringTx>> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     let mut stmt = conn.prepare(
         "SELECT id, name, type, amount, category, asset_class, description, notes,
                 frequency, next_due_date, last_run_date, is_active, created_at
@@ -354,7 +354,7 @@ pub fn list_recurring(state: State<DbState>) -> Result<Vec<RecurringTx>> {
 
 #[tauri::command]
 pub fn add_recurring(payload: RecurringTxPayload, state: State<DbState>) -> Result<i64> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "INSERT INTO recurring_transactions
          (name, type, amount, category, asset_class, description, notes, frequency, next_due_date)
@@ -368,7 +368,7 @@ pub fn add_recurring(payload: RecurringTxPayload, state: State<DbState>) -> Resu
 
 #[tauri::command]
 pub fn update_recurring(id: i64, payload: RecurringTxPayload, state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "UPDATE recurring_transactions SET name=?1, type=?2, amount=?3, category=?4,
          asset_class=?5, description=?6, notes=?7, frequency=?8, next_due_date=?9,
@@ -382,14 +382,14 @@ pub fn update_recurring(id: i64, payload: RecurringTxPayload, state: State<DbSta
 
 #[tauri::command]
 pub fn delete_recurring(id: i64, state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute("DELETE FROM recurring_transactions WHERE id=?1", [id])?;
     Ok(())
 }
 
 #[tauri::command]
 pub fn toggle_recurring(id: i64, state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "UPDATE recurring_transactions SET is_active = 1 - is_active, updated_at=datetime('now') WHERE id=?1",
         [id],
@@ -399,7 +399,7 @@ pub fn toggle_recurring(id: i64, state: State<DbState>) -> Result<()> {
 
 #[tauri::command]
 pub fn get_due_recurring(state: State<DbState>) -> Result<Vec<RecurringTx>> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     let mut stmt = conn.prepare(
         "SELECT id, name, type, amount, category, asset_class, description, notes,
                 frequency, next_due_date, last_run_date, is_active, created_at
@@ -418,7 +418,7 @@ pub fn get_due_recurring(state: State<DbState>) -> Result<Vec<RecurringTx>> {
 
 #[tauri::command]
 pub fn apply_recurring(ids: Vec<i64>, state: State<DbState>) -> Result<i32> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     let today = Local::now().date_naive();
     let today_str = today.format("%Y-%m-%d").to_string();
     let mut applied = 0i32;
@@ -483,7 +483,7 @@ fn map_milestone(r: &rusqlite::Row) -> rusqlite::Result<Milestone> {
 /// and returns only the newly crossed milestones so the caller can notify.
 #[tauri::command]
 pub fn check_milestones(net_worth: f64, state: State<DbState>) -> Result<Vec<Milestone>> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     let mut stmt = conn.prepare(
         "SELECT id, amount, label, is_custom, achieved_at, created_at
          FROM milestones WHERE amount <= ?1 AND achieved_at IS NULL ORDER BY amount ASC"
@@ -502,7 +502,7 @@ pub fn check_milestones(net_worth: f64, state: State<DbState>) -> Result<Vec<Mil
 
 #[tauri::command]
 pub fn list_milestones(state: State<DbState>) -> Result<Vec<Milestone>> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     let mut stmt = conn.prepare(
         "SELECT id, amount, label, is_custom, achieved_at, created_at
          FROM milestones ORDER BY amount ASC"
@@ -513,7 +513,7 @@ pub fn list_milestones(state: State<DbState>) -> Result<Vec<Milestone>> {
 
 #[tauri::command]
 pub fn add_milestone(amount: f64, label: String, state: State<DbState>) -> Result<i64> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "INSERT INTO milestones (amount, label, is_custom) VALUES (?1,?2,1)",
         rusqlite::params![amount, label],
@@ -523,7 +523,7 @@ pub fn add_milestone(amount: f64, label: String, state: State<DbState>) -> Resul
 
 #[tauri::command]
 pub fn delete_milestone(id: i64, state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute("DELETE FROM milestones WHERE id=?1 AND is_custom=1", [id])?;
     Ok(())
 }
@@ -550,7 +550,7 @@ fn last_day_of_month_date(year: i32, month: u32) -> NaiveDate {
 /// Returns all financial events (loans, credit cards, bills, goals, recurring) for the given month.
 #[tauri::command]
 pub fn get_calendar_events(year: i32, month: u32, state: State<DbState>) -> Result<Vec<CalendarEvent>> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     let today = Local::now().date_naive();
     let first_day = NaiveDate::from_ymd_opt(year, month, 1)
         .ok_or_else(|| AppError::Database("invalid year/month".into()))?;

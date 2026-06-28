@@ -4,7 +4,7 @@ use crate::error::{AppError, Result};
 
 #[tauri::command]
 pub fn get_setting(key: String, state: State<DbState>) -> Result<String> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.query_row(
         "SELECT value FROM app_settings WHERE key=?1",
         [&key],
@@ -14,7 +14,7 @@ pub fn get_setting(key: String, state: State<DbState>) -> Result<String> {
 
 #[tauri::command]
 pub fn set_setting(key: String, value: String, state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "INSERT INTO app_settings (key, value) VALUES (?1, ?2)
          ON CONFLICT(key) DO UPDATE SET value=excluded.value",
@@ -25,7 +25,7 @@ pub fn set_setting(key: String, value: String, state: State<DbState>) -> Result<
 
 #[tauri::command]
 pub fn backup_database(dest_path: String, state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     let mut dest = rusqlite::Connection::open(&dest_path)
         .map_err(|e| AppError::Io(e.to_string()))?;
     let backup = rusqlite::backup::Backup::new(&conn, &mut dest)
@@ -37,10 +37,10 @@ pub fn backup_database(dest_path: String, state: State<DbState>) -> Result<()> {
 
 #[tauri::command]
 pub fn restore_database(src_path: String, state: State<DbState>) -> Result<()> {
-    let mut conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let mut conn = state.0.get()?;
     let src = rusqlite::Connection::open(&src_path)
         .map_err(|e| AppError::Io(e.to_string()))?;
-    let restore = rusqlite::backup::Backup::new(&src, &mut conn)
+    let restore = rusqlite::backup::Backup::new(&src, &mut *conn)
         .map_err(|e| AppError::Database(e.to_string()))?;
     restore.run_to_completion(5, std::time::Duration::from_millis(250), None)
         .map_err(|e| AppError::Database(e.to_string()))?;
@@ -49,7 +49,7 @@ pub fn restore_database(src_path: String, state: State<DbState>) -> Result<()> {
 
 #[tauri::command]
 pub fn wipe_all_data(state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     // Delete all financial data tables in dependency order (children first)
     let tables = [
         "sip_schedules",

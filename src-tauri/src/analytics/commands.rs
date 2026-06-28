@@ -1,5 +1,5 @@
 use crate::db::DbState;
-use crate::error::{AppError, Result};
+use crate::error::Result;
 use rusqlite::params;
 use tauri::State;
 
@@ -40,7 +40,7 @@ pub struct AnalyticsExport {
 
 #[tauri::command]
 pub fn track_event(name: String, properties: Option<String>, state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "INSERT INTO app_events (event_name, properties) VALUES (?1, ?2)",
         params![name, properties],
@@ -60,7 +60,7 @@ pub fn track_error(
     context: Option<String>,
     state: State<DbState>,
 ) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "INSERT INTO app_errors (error_type, message, stack, context) VALUES (?1, ?2, ?3, ?4)",
         params![error_type, message, stack, context],
@@ -74,7 +74,7 @@ pub fn track_error(
 
 #[tauri::command]
 pub fn track_perf(metric_name: String, value_ms: f64, state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "INSERT INTO perf_metrics (metric_name, value_ms) VALUES (?1, ?2)",
         params![metric_name, value_ms],
@@ -88,7 +88,7 @@ pub fn track_perf(metric_name: String, value_ms: f64, state: State<DbState>) -> 
 
 #[tauri::command]
 pub fn get_event_stats(state: State<DbState>) -> Result<Vec<EventStat>> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     let mut stmt = conn.prepare(
         "SELECT event_name, COUNT(*) AS count, MAX(created_at) AS last_seen \
          FROM app_events \
@@ -108,7 +108,7 @@ pub fn get_event_stats(state: State<DbState>) -> Result<Vec<EventStat>> {
 
 #[tauri::command]
 pub fn get_error_log(state: State<DbState>) -> Result<Vec<ErrorEntry>> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     let mut stmt = conn.prepare(
         "SELECT id, error_type, message, created_at \
          FROM app_errors \
@@ -128,7 +128,7 @@ pub fn get_error_log(state: State<DbState>) -> Result<Vec<ErrorEntry>> {
 
 #[tauri::command]
 pub fn get_perf_stats(state: State<DbState>) -> Result<Vec<PerfStat>> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     let mut stmt = conn.prepare(
         "SELECT metric_name, AVG(value_ms), COUNT(*) \
          FROM perf_metrics \
@@ -147,7 +147,7 @@ pub fn get_perf_stats(state: State<DbState>) -> Result<Vec<PerfStat>> {
 
 #[tauri::command]
 pub fn export_analytics(state: State<DbState>) -> Result<AnalyticsExport> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
 
     let mut s1 = conn.prepare(
         "SELECT event_name, COUNT(*) AS count, MAX(created_at) AS last_seen \
@@ -189,7 +189,7 @@ pub fn export_analytics(state: State<DbState>) -> Result<AnalyticsExport> {
 
 #[tauri::command]
 pub fn clear_analytics(state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute("DELETE FROM app_events", [])?;
     conn.execute("DELETE FROM app_errors", [])?;
     conn.execute("DELETE FROM perf_metrics", [])?;

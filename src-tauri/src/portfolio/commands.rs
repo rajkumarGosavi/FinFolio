@@ -1,7 +1,7 @@
 use tauri::State;
 use serde::{Deserialize, Serialize};
 use crate::db::DbState;
-use crate::error::{AppError, Result};
+use crate::error::Result;
 use crate::models::{equity::*, mf::*, fd::*, ppf_epf::*, real_estate::*, gold::*, crypto::*, insurance::*, bond::*};
 use super::calculator::{self, AllocationItem, NetWorthSummary};
 
@@ -9,13 +9,13 @@ use super::calculator::{self, AllocationItem, NetWorthSummary};
 
 #[tauri::command]
 pub fn get_net_worth(state: State<DbState>) -> Result<NetWorthSummary> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     calculator::calc_net_worth(&conn)
 }
 
 #[tauri::command]
 pub fn get_allocation_breakdown(state: State<DbState>) -> Result<Vec<AllocationItem>> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     calculator::calc_allocation(&conn)
 }
 
@@ -23,7 +23,7 @@ pub fn get_allocation_breakdown(state: State<DbState>) -> Result<Vec<AllocationI
 
 #[tauri::command]
 pub fn list_equity(state: State<DbState>) -> Result<Vec<EquityHolding>> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     let mut stmt = conn.prepare(
         "SELECT e.id, e.account_id, e.isin, e.symbol, e.exchange, e.name, e.quantity,
                 e.avg_buy_price, e.current_price, e.price_updated_at,
@@ -45,7 +45,7 @@ pub fn list_equity(state: State<DbState>) -> Result<Vec<EquityHolding>> {
 
 #[tauri::command]
 pub fn add_equity(payload: AddEquityPayload, state: State<DbState>) -> Result<i64> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "INSERT INTO equity_holdings (account_id, isin, symbol, exchange, name, quantity, avg_buy_price)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
@@ -57,7 +57,7 @@ pub fn add_equity(payload: AddEquityPayload, state: State<DbState>) -> Result<i6
 
 #[tauri::command]
 pub fn update_equity(id: i64, payload: AddEquityPayload, state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "UPDATE equity_holdings SET symbol=?1, exchange=?2, name=?3, quantity=?4,
          avg_buy_price=?5, updated_at=datetime('now') WHERE id=?6",
@@ -69,7 +69,7 @@ pub fn update_equity(id: i64, payload: AddEquityPayload, state: State<DbState>) 
 
 #[tauri::command]
 pub fn delete_equity(id: i64, state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute("DELETE FROM equity_holdings WHERE id=?1", [id])?;
     Ok(())
 }
@@ -78,7 +78,7 @@ pub fn delete_equity(id: i64, state: State<DbState>) -> Result<()> {
 
 #[tauri::command]
 pub fn list_mf(state: State<DbState>) -> Result<Vec<MfHolding>> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     let mut stmt = conn.prepare(
         "SELECT id, account_id, scheme_code, scheme_name, amc_name, folio_number,
                 units, avg_nav, current_nav, nav_date, is_direct, is_growth, created_at, updated_at
@@ -96,7 +96,7 @@ pub fn list_mf(state: State<DbState>) -> Result<Vec<MfHolding>> {
 
 #[tauri::command]
 pub fn add_mf(payload: AddMfPayload, state: State<DbState>) -> Result<i64> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "INSERT INTO mf_holdings (account_id, scheme_code, scheme_name, amc_name, folio_number,
          units, avg_nav, is_direct, is_growth) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)",
@@ -109,7 +109,7 @@ pub fn add_mf(payload: AddMfPayload, state: State<DbState>) -> Result<i64> {
 
 #[tauri::command]
 pub fn update_mf(id: i64, payload: AddMfPayload, state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "UPDATE mf_holdings SET units=?1, avg_nav=?2, is_direct=?3, is_growth=?4,
          updated_at=datetime('now') WHERE id=?5",
@@ -121,7 +121,7 @@ pub fn update_mf(id: i64, payload: AddMfPayload, state: State<DbState>) -> Resul
 
 #[tauri::command]
 pub fn delete_mf(id: i64, state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute("DELETE FROM mf_holdings WHERE id=?1", [id])?;
     Ok(())
 }
@@ -130,7 +130,7 @@ pub fn delete_mf(id: i64, state: State<DbState>) -> Result<()> {
 
 #[tauri::command]
 pub fn list_fd(state: State<DbState>) -> Result<Vec<FdHolding>> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     let mut stmt = conn.prepare(
         "SELECT id, account_id, bank_name, account_number, principal, interest_rate,
                 compounding, tenure_months, start_date, maturity_date, maturity_amount,
@@ -148,7 +148,7 @@ pub fn list_fd(state: State<DbState>) -> Result<Vec<FdHolding>> {
 
 #[tauri::command]
 pub fn add_fd(payload: AddFdPayload, state: State<DbState>) -> Result<i64> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "INSERT INTO fd_holdings (account_id, bank_name, account_number, principal, interest_rate,
          compounding, tenure_months, start_date, maturity_date, maturity_amount, is_cumulative)
@@ -163,7 +163,7 @@ pub fn add_fd(payload: AddFdPayload, state: State<DbState>) -> Result<i64> {
 
 #[tauri::command]
 pub fn update_fd(id: i64, payload: AddFdPayload, state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "UPDATE fd_holdings SET bank_name=?1, principal=?2, interest_rate=?3,
          tenure_months=?4, maturity_date=?5, maturity_amount=?6 WHERE id=?7",
@@ -175,7 +175,7 @@ pub fn update_fd(id: i64, payload: AddFdPayload, state: State<DbState>) -> Resul
 
 #[tauri::command]
 pub fn delete_fd(id: i64, state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute("DELETE FROM fd_holdings WHERE id=?1", [id])?;
     Ok(())
 }
@@ -184,7 +184,7 @@ pub fn delete_fd(id: i64, state: State<DbState>) -> Result<()> {
 
 #[tauri::command]
 pub fn list_ppf_epf(state: State<DbState>) -> Result<Vec<PpfEpfHolding>> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     let mut stmt = conn.prepare(
         "SELECT id, account_type, account_number, balance, interest_rate,
                 financial_year, employer_contrib, employee_contrib, updated_at
@@ -200,7 +200,7 @@ pub fn list_ppf_epf(state: State<DbState>) -> Result<Vec<PpfEpfHolding>> {
 
 #[tauri::command]
 pub fn add_ppf_epf(payload: AddPpfEpfPayload, state: State<DbState>) -> Result<i64> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "INSERT INTO ppf_epf_holdings (account_type, account_number, balance, interest_rate,
          financial_year, employer_contrib, employee_contrib)
@@ -214,7 +214,7 @@ pub fn add_ppf_epf(payload: AddPpfEpfPayload, state: State<DbState>) -> Result<i
 
 #[tauri::command]
 pub fn update_ppf_epf(id: i64, payload: AddPpfEpfPayload, state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "UPDATE ppf_epf_holdings SET balance=?1, interest_rate=?2, employer_contrib=?3,
          employee_contrib=?4, updated_at=datetime('now') WHERE id=?5",
@@ -226,7 +226,7 @@ pub fn update_ppf_epf(id: i64, payload: AddPpfEpfPayload, state: State<DbState>)
 
 #[tauri::command]
 pub fn delete_ppf_epf(id: i64, state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute("DELETE FROM ppf_epf_holdings WHERE id=?1", [id])?;
     Ok(())
 }
@@ -235,7 +235,7 @@ pub fn delete_ppf_epf(id: i64, state: State<DbState>) -> Result<()> {
 
 #[tauri::command]
 pub fn list_real_estate(state: State<DbState>) -> Result<Vec<RealEstateHolding>> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     let mut stmt = conn.prepare(
         "SELECT id, property_name, property_type, location, purchase_price, purchase_date,
                 current_value, rental_income, has_mortgage, created_at
@@ -252,7 +252,7 @@ pub fn list_real_estate(state: State<DbState>) -> Result<Vec<RealEstateHolding>>
 
 #[tauri::command]
 pub fn add_real_estate(payload: AddRealEstatePayload, state: State<DbState>) -> Result<i64> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "INSERT INTO real_estate_holdings (property_name, property_type, location, purchase_price,
          purchase_date, current_value, rental_income, has_mortgage)
@@ -266,7 +266,7 @@ pub fn add_real_estate(payload: AddRealEstatePayload, state: State<DbState>) -> 
 
 #[tauri::command]
 pub fn update_real_estate(id: i64, payload: AddRealEstatePayload, state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "UPDATE real_estate_holdings SET property_name=?1, current_value=?2,
          rental_income=?3, has_mortgage=?4 WHERE id=?5",
@@ -278,7 +278,7 @@ pub fn update_real_estate(id: i64, payload: AddRealEstatePayload, state: State<D
 
 #[tauri::command]
 pub fn delete_real_estate(id: i64, state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute("DELETE FROM real_estate_holdings WHERE id=?1", [id])?;
     Ok(())
 }
@@ -287,7 +287,7 @@ pub fn delete_real_estate(id: i64, state: State<DbState>) -> Result<()> {
 
 #[tauri::command]
 pub fn list_gold(state: State<DbState>) -> Result<Vec<GoldHolding>> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     let mut stmt = conn.prepare(
         "SELECT id, gold_type, name, weight_grams, purity, units, avg_buy_price,
                 current_price, account_id, maturity_date, created_at
@@ -304,7 +304,7 @@ pub fn list_gold(state: State<DbState>) -> Result<Vec<GoldHolding>> {
 
 #[tauri::command]
 pub fn add_gold(payload: AddGoldPayload, state: State<DbState>) -> Result<i64> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "INSERT INTO gold_holdings (gold_type, name, weight_grams, purity, units, avg_buy_price,
          account_id, maturity_date) VALUES (?1,?2,?3,?4,?5,?6,?7,?8)",
@@ -316,7 +316,7 @@ pub fn add_gold(payload: AddGoldPayload, state: State<DbState>) -> Result<i64> {
 
 #[tauri::command]
 pub fn update_gold(id: i64, payload: AddGoldPayload, state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "UPDATE gold_holdings SET weight_grams=?1, units=?2, avg_buy_price=?3 WHERE id=?4",
         rusqlite::params![payload.weight_grams, payload.units, payload.avg_buy_price, id],
@@ -326,7 +326,7 @@ pub fn update_gold(id: i64, payload: AddGoldPayload, state: State<DbState>) -> R
 
 #[tauri::command]
 pub fn delete_gold(id: i64, state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute("DELETE FROM gold_holdings WHERE id=?1", [id])?;
     Ok(())
 }
@@ -335,7 +335,7 @@ pub fn delete_gold(id: i64, state: State<DbState>) -> Result<()> {
 
 #[tauri::command]
 pub fn list_crypto(state: State<DbState>) -> Result<Vec<CryptoHolding>> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     let mut stmt = conn.prepare(
         "SELECT id, account_id, exchange_name, coin_symbol, quantity, avg_buy_price, current_price, created_at
          FROM crypto_holdings ORDER BY coin_symbol"
@@ -350,7 +350,7 @@ pub fn list_crypto(state: State<DbState>) -> Result<Vec<CryptoHolding>> {
 
 #[tauri::command]
 pub fn add_crypto(payload: AddCryptoPayload, state: State<DbState>) -> Result<i64> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "INSERT INTO crypto_holdings (account_id, exchange_name, coin_symbol, quantity, avg_buy_price)
          VALUES (?1,?2,?3,?4,?5)",
@@ -362,7 +362,7 @@ pub fn add_crypto(payload: AddCryptoPayload, state: State<DbState>) -> Result<i6
 
 #[tauri::command]
 pub fn update_crypto(id: i64, payload: AddCryptoPayload, state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "UPDATE crypto_holdings SET quantity=?1, avg_buy_price=?2 WHERE id=?3",
         rusqlite::params![payload.quantity, payload.avg_buy_price, id],
@@ -372,7 +372,7 @@ pub fn update_crypto(id: i64, payload: AddCryptoPayload, state: State<DbState>) 
 
 #[tauri::command]
 pub fn delete_crypto(id: i64, state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute("DELETE FROM crypto_holdings WHERE id=?1", [id])?;
     Ok(())
 }
@@ -381,7 +381,7 @@ pub fn delete_crypto(id: i64, state: State<DbState>) -> Result<()> {
 
 #[tauri::command]
 pub fn list_insurance(state: State<DbState>) -> Result<Vec<InsuranceHolding>> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     let mut stmt = conn.prepare(
         "SELECT id, insurance_type, provider, policy_number, premium_amount, premium_freq,
                 coverage_amount, maturity_value, start_date, end_date, next_due_date, created_at
@@ -398,7 +398,7 @@ pub fn list_insurance(state: State<DbState>) -> Result<Vec<InsuranceHolding>> {
 
 #[tauri::command]
 pub fn add_insurance(payload: AddInsurancePayload, state: State<DbState>) -> Result<i64> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "INSERT INTO insurance_holdings (insurance_type, provider, policy_number, premium_amount,
          premium_freq, coverage_amount, maturity_value, start_date, end_date, next_due_date)
@@ -412,7 +412,7 @@ pub fn add_insurance(payload: AddInsurancePayload, state: State<DbState>) -> Res
 
 #[tauri::command]
 pub fn update_insurance(id: i64, payload: AddInsurancePayload, state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "UPDATE insurance_holdings SET premium_amount=?1, coverage_amount=?2,
          maturity_value=?3, next_due_date=?4 WHERE id=?5",
@@ -424,7 +424,7 @@ pub fn update_insurance(id: i64, payload: AddInsurancePayload, state: State<DbSt
 
 #[tauri::command]
 pub fn delete_insurance(id: i64, state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute("DELETE FROM insurance_holdings WHERE id=?1", [id])?;
     Ok(())
 }
@@ -463,7 +463,7 @@ pub struct AddSipPayload {
 
 #[tauri::command]
 pub fn list_sip_schedules(state: State<DbState>) -> Result<Vec<SipSchedule>> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     let mut stmt = conn.prepare(
         "SELECT s.id, s.account_id, s.mf_holding_id, s.scheme_code, m.scheme_name,
                 s.amount, s.frequency, s.debit_day, s.start_date, s.end_date, s.is_active
@@ -491,7 +491,7 @@ pub fn list_sip_schedules(state: State<DbState>) -> Result<Vec<SipSchedule>> {
 
 #[tauri::command]
 pub fn add_sip_schedule(payload: AddSipPayload, state: State<DbState>) -> Result<i64> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "INSERT INTO sip_schedules (account_id, mf_holding_id, scheme_code, amount, frequency,
          debit_day, start_date, end_date, is_active)
@@ -507,7 +507,7 @@ pub fn add_sip_schedule(payload: AddSipPayload, state: State<DbState>) -> Result
 
 #[tauri::command]
 pub fn update_sip_schedule(id: i64, payload: AddSipPayload, state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "UPDATE sip_schedules SET account_id=?1, mf_holding_id=?2, scheme_code=?3, amount=?4,
          frequency=?5, debit_day=?6, start_date=?7, end_date=?8, is_active=?9
@@ -523,7 +523,7 @@ pub fn update_sip_schedule(id: i64, payload: AddSipPayload, state: State<DbState
 
 #[tauri::command]
 pub fn delete_sip_schedule(id: i64, state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute("DELETE FROM sip_schedules WHERE id=?1", [id])?;
     Ok(())
 }
@@ -532,7 +532,7 @@ pub fn delete_sip_schedule(id: i64, state: State<DbState>) -> Result<()> {
 
 #[tauri::command]
 pub fn list_bonds(state: State<DbState>) -> Result<Vec<BondHolding>> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     let mut stmt = conn.prepare(
         "SELECT id, account_id, isin, issuer_name, bond_type, face_value, quantity,
                 purchase_price, current_price, coupon_rate, coupon_frequency,
@@ -562,7 +562,7 @@ pub fn list_bonds(state: State<DbState>) -> Result<Vec<BondHolding>> {
 
 #[tauri::command]
 pub fn add_bond(payload: AddBondPayload, state: State<DbState>) -> Result<i64> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "INSERT INTO bond_holdings
          (account_id, isin, issuer_name, bond_type, face_value, quantity,
@@ -581,7 +581,7 @@ pub fn add_bond(payload: AddBondPayload, state: State<DbState>) -> Result<i64> {
 
 #[tauri::command]
 pub fn update_bond(id: i64, payload: AddBondPayload, state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute(
         "UPDATE bond_holdings SET
          account_id=?1, isin=?2, issuer_name=?3, bond_type=?4, face_value=?5,
@@ -601,7 +601,7 @@ pub fn update_bond(id: i64, payload: AddBondPayload, state: State<DbState>) -> R
 
 #[tauri::command]
 pub fn delete_bond(id: i64, state: State<DbState>) -> Result<()> {
-    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    let conn = state.0.get()?;
     conn.execute("DELETE FROM bond_holdings WHERE id=?1", [id])?;
     Ok(())
 }
