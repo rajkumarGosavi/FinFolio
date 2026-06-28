@@ -163,6 +163,9 @@ pub fn run() {
             data_sources::commands::disconnect_angel,
             // data sources – csv import (all brokers)
             data_sources::commands::import_broker_equity_csv,
+            data_sources::commands::parse_broker_equity_csv,
+            data_sources::commands::import_mf_csv,
+            data_sources::commands::import_generic_asset_csv,
             // goals
             goals::commands::list_goals,
             goals::commands::add_goal,

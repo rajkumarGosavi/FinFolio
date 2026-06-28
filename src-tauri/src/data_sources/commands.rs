@@ -4,6 +4,7 @@ use crate::db::DbState;
 use crate::error::{AppError, Result};
 use super::angel_one;
 use super::broker;
+use super::csv_importer;
 use super::upstox;
 use super::zerodha;
 
@@ -650,7 +651,7 @@ pub fn disconnect_angel(state: State<DbState>) -> Result<()> {
 // ─── Groww CSV Import ────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════
 
-#[derive(serde::Deserialize, Debug)]
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct BrokerCsvRow {
     pub symbol: String,
@@ -691,4 +692,90 @@ pub fn import_broker_equity_csv(
     let imported = broker::write_broker_holdings(&mut conn, &broker, &display_name, &holdings)?;
 
     Ok(ImportResult { imported, skipped })
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ─── Rust-side CSV Parsers ───────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+
+#[tauri::command]
+pub fn parse_broker_equity_csv(broker: String, csv_content: String) -> Result<Vec<BrokerCsvRow>> {
+    csv_importer::parse_equity_csv(&broker, &csv_content)
+}
+
+#[tauri::command]
+pub fn import_mf_csv(
+    csv_content: String,
+    account_name: String,
+    state: State<DbState>,
+) -> Result<ImportResult> {
+    let rows = csv_importer::parse_mf_csv(&csv_content)?;
+
+    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+
+    conn.execute(
+        "INSERT OR IGNORE INTO accounts
+             (name, type, provider, is_active, created_at, updated_at)
+         VALUES (?1, 'broker', 'csv_mf', 1, datetime('now'), datetime('now'))",
+        rusqlite::params![account_name],
+    )?;
+    let account_id: i64 = conn.query_row(
+        "SELECT id FROM accounts WHERE provider='csv_mf' AND name=?1",
+        rusqlite::params![account_name],
+        |r| r.get(0),
+    )?;
+
+    let mut imported = 0i64;
+    let mut skipped = 0i64;
+
+    for h in &rows {
+        let res = conn.execute(
+            "INSERT INTO mf_holdings
+                 (account_id, scheme_code, scheme_name, amc_name, folio_number,
+                  units, avg_nav, current_nav, is_direct, is_growth,
+                  created_at, updated_at)
+             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,datetime('now'),datetime('now'))
+             ON CONFLICT(account_id, folio_number, scheme_code)
+             DO UPDATE SET
+                 units=excluded.units,
+                 avg_nav=excluded.avg_nav,
+                 current_nav=excluded.current_nav,
+                 updated_at=datetime('now')",
+            rusqlite::params![
+                account_id,
+                h.isin,
+                h.scheme_name,
+                h.amc_name,
+                h.folio_number,
+                h.units,
+                h.avg_nav,
+                h.current_nav,
+                h.is_direct as i64,
+                h.is_growth as i64,
+            ],
+        );
+        match res {
+            Ok(_) => imported += 1,
+            Err(_) => skipped += 1,
+        }
+    }
+
+    Ok(ImportResult { imported, skipped })
+}
+
+#[tauri::command]
+pub fn import_generic_asset_csv(
+    asset_type: String,
+    csv_content: String,
+    state: State<DbState>,
+) -> Result<ImportResult> {
+    let conn = state.0.lock().map_err(|_| AppError::Database("lock error".into()))?;
+    match asset_type.as_str() {
+        "fd"      => csv_importer::import_fd_from_csv(&csv_content, &conn),
+        "gold"    => csv_importer::import_gold_from_csv(&csv_content, &conn),
+        "crypto"  => csv_importer::import_crypto_from_csv(&csv_content, &conn),
+        "bond"    => csv_importer::import_bond_from_csv(&csv_content, &conn),
+        "ppf_epf" => csv_importer::import_ppf_epf_from_csv(&csv_content, &conn),
+        _ => Err(AppError::Validation(format!("Unknown asset type: {asset_type}"))),
+    }
 }

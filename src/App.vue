@@ -19,7 +19,6 @@ onMounted(() => {
 </script>
 
 <template>
-  <Toast />
   <ConfirmDialog />
   <RouterView v-if="ready" />
 </template>
