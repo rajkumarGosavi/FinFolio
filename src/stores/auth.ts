@@ -15,14 +15,7 @@ export const useAuthStore = defineStore("auth", {
         async init() {
             if (this._initialized) return;
             this.isPasswordSet = await invoke<boolean>("is_password_set");
-            if (this.isPasswordSet) {
-                try {
-                    const val = await invoke<string>("get_setting", { key: "onboarding_complete" });
-                    this.onboardingComplete = val === "true";
-                } catch {
-                    this.onboardingComplete = false;
-                }
-            }
+            // onboardingComplete is loaded after unlock() — DB is locked here
             this._initialized = true;
         },
 
@@ -31,6 +24,10 @@ export const useAuthStore = defineStore("auth", {
             if (ok) {
                 this.isUnlocked = true;
                 this._lastActivity = Date.now();
+                try {
+                    const val = await invoke<string>("get_setting", { key: "onboarding_complete" });
+                    this.onboardingComplete = val === "true";
+                } catch { /* new install — stays false, onboarding will run */ }
             }
             return ok;
         },
@@ -39,6 +36,7 @@ export const useAuthStore = defineStore("auth", {
             await invoke("setup_master_password", { password });
             this.isPasswordSet = true;
             this.isUnlocked = true;
+            // onboardingComplete stays false — correct, new user needs onboarding
         },
 
         async completeOnboarding() {

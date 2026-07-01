@@ -41,8 +41,7 @@ pub fn run() {
             std::fs::create_dir_all(&app_data_dir)?;
 
             let db_path = app_data_dir.join("suvarix.db");
-            let db_state = DbState::new(&db_path.to_string_lossy())
-                .expect("failed to initialize database");
+            let db_state = DbState::new(db_path.to_string_lossy().into_owned());
             app.manage(db_state);
             Ok(())
         })

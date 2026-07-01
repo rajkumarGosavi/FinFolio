@@ -48,14 +48,14 @@ router.beforeEach(async (to) => {
     if (!auth.isPasswordSet) {
         return "/setup";
     }
+    if (!auth.isUnlocked) {
+        return "/unlock";
+    }
     const needsOnboarding = import.meta.env.DEV
         ? !auth._onboardingSeen
         : !auth.onboardingComplete;
     if (needsOnboarding) {
         return "/onboarding";
-    }
-    if (!auth.isUnlocked) {
-        return "/unlock";
     }
     return true;
 });

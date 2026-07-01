@@ -3,71 +3,160 @@ use r2d2_sqlite::SqliteConnectionManager;
 use rusqlite::Connection;
 use std::io::Read;
 use std::path::Path;
-use rand::RngCore;
+use std::sync::Mutex;
 
 use crate::error::{AppError, Result};
 
 pub mod migrations;
 
-pub struct DbState(pub Pool<SqliteConnectionManager>);
+pub struct DbPool {
+    db_path: String,
+    inner: Mutex<Option<Pool<SqliteConnectionManager>>>,
+}
 
-const KEYRING_SERVICE: &str = "suvarix";
-const KEYRING_ACCOUNT: &str = "db_key";
+pub struct DbState(pub DbPool);
+
 const SQLITE_MAGIC: &[u8] = b"SQLite format 3\0";
 
-impl DbState {
-    pub fn new(db_path: &str) -> Result<Self> {
-        let path = Path::new(db_path);
-        let key = get_or_create_db_key()?;
+impl DbPool {
+    pub fn new(db_path: String) -> Self {
+        Self { db_path, inner: Mutex::new(None) }
+    }
 
-        // One-time migration: encrypt existing plain SQLite DB
-        if path.exists() && is_plain_sqlite(path) {
-            migrate_to_cipher(path, &key)?;
-        }
+    /// Returns a pooled connection, or AuthRequired if not yet unlocked.
+    pub fn get(&self) -> Result<r2d2::PooledConnection<SqliteConnectionManager>> {
+        self.inner
+            .lock()
+            .map_err(|_| AppError::Database("pool lock error".into()))?
+            .as_ref()
+            .ok_or(AppError::AuthRequired)?
+            .get()
+            .map_err(|e| AppError::Database(e.to_string()))
+    }
 
-        let init_sql = format!(
-            "PRAGMA key = \"x'{}'\";\n\
-             PRAGMA journal_mode=WAL;\n\
-             PRAGMA foreign_keys=ON;\n\
-             PRAGMA busy_timeout=5000;\n\
-             PRAGMA synchronous=NORMAL;\n\
-             PRAGMA temp_store=MEMORY;",
-            key
-        );
+    /// True if DB file exists and is encrypted (not plain SQLite).
+    pub fn is_password_set(&self) -> bool {
+        let path = Path::new(&self.db_path);
+        path.exists() && !is_plain_sqlite(path)
+    }
 
-        let manager = SqliteConnectionManager::file(db_path)
-            .with_init(move |conn| conn.execute_batch(&init_sql));
-
-        let pool = Pool::builder()
-            .max_size(4)
-            .build(manager)
-            .map_err(|e| AppError::Database(e.to_string()))?;
-
+    /// First-run: create new encrypted DB with password and run migrations.
+    pub fn initialize(&self, password: &str) -> Result<()> {
+        let pool = build_pool(&self.db_path, password)?;
         {
             let conn = pool.get().map_err(|e| AppError::Database(e.to_string()))?;
             migrations::run_migrations(&conn)?;
         }
+        *self.inner.lock().map_err(|_| AppError::Database("lock error".into()))? = Some(pool);
+        Ok(())
+    }
 
-        Ok(DbState(pool))
+    /// Try to open DB with password. On success stores pool. Returns false on wrong password.
+    /// Transparently migrates from old random-device-key encryption if present.
+    pub fn unlock(&self, password: &str) -> Result<bool> {
+        let path = Path::new(&self.db_path);
+        if !path.exists() {
+            return Ok(false);
+        }
+
+        if try_open(path, password)? {
+            let pool = build_pool(&self.db_path, password)?;
+            {
+                let conn = pool.get().map_err(|e| AppError::Database(e.to_string()))?;
+                migrations::run_migrations(&conn)?;
+            }
+            *self.inner.lock().map_err(|_| AppError::Database("lock error".into()))? = Some(pool);
+            return Ok(true);
+        }
+
+        // Migration: DB encrypted with old random device key → re-encrypt with passphrase.
+        // Can be removed after v0.6 once migration window closes.
+        if let Ok(entry) = keyring::Entry::new("suvarix", "db_key") {
+            if let Ok(device_key) = entry.get_password() {
+                if migrate_from_device_key(path, &device_key, password).is_ok() {
+                    let _ = entry.delete_credential();
+                    let pool = build_pool(&self.db_path, password)?;
+                    {
+                        let conn = pool.get().map_err(|e| AppError::Database(e.to_string()))?;
+                        migrations::run_migrations(&conn)?;
+                    }
+                    *self.inner.lock().map_err(|_| AppError::Database("lock error".into()))? = Some(pool);
+                    return Ok(true);
+                }
+            }
+        }
+
+        Ok(false)
+    }
+
+    /// Verify password without disturbing the open pool.
+    pub fn verify_password(&self, password: &str) -> Result<bool> {
+        let path = Path::new(&self.db_path);
+        if !path.exists() { return Ok(false); }
+        try_open(path, password)
+    }
+
+    /// Drop the connection pool (auto-lock / manual lock).
+    pub fn lock(&self) {
+        if let Ok(mut guard) = self.inner.lock() {
+            *guard = None;
+        }
+    }
+
+    /// Change passphrase: PRAGMA rekey on existing conn, then rebuild pool.
+    pub fn rekey(&self, new_password: &str) -> Result<()> {
+        // Step 1: rekey while holding the guard (prevents new checkouts racing)
+        {
+            let guard = self.inner.lock().map_err(|_| AppError::Database("lock error".into()))?;
+            let conn = guard.as_ref().ok_or(AppError::AuthRequired)?
+                .get().map_err(|e| AppError::Database(e.to_string()))?;
+            let escaped = new_password.replace('\'', "''");
+            conn.execute_batch(&format!("PRAGMA rekey = '{escaped}';"))
+                .map_err(|e| AppError::Database(format!("rekey: {e}")))?;
+        }
+        // Step 2: rebuild pool so with_init uses new password (guard released above)
+        let new_pool = build_pool(&self.db_path, new_password)?;
+        *self.inner.lock().map_err(|_| AppError::Database("lock error".into()))? = Some(new_pool);
+        Ok(())
     }
 }
 
-fn get_or_create_db_key() -> Result<String> {
-    let entry = keyring::Entry::new(KEYRING_SERVICE, KEYRING_ACCOUNT)
-        .map_err(|e| AppError::Io(format!("keyring: {}", e)))?;
-
-    match entry.get_password() {
-        Ok(key) => Ok(key),
-        Err(_) => {
-            // First install — generate and persist a random 32-byte key
-            let mut bytes = [0u8; 32];
-            rand::thread_rng().fill_bytes(&mut bytes);
-            let key = hex::encode(bytes);
-            entry.set_password(&key)
-                .map_err(|e| AppError::Io(format!("keyring store: {}", e)))?;
-            Ok(key)
-        }
+impl DbState {
+    pub fn new(db_path: String) -> Self {
+        DbState(DbPool::new(db_path))
     }
+}
+
+// ── Private helpers ────────────────────────────────────────────────────────
+
+fn build_pool(db_path: &str, password: &str) -> Result<Pool<SqliteConnectionManager>> {
+    let escaped = password.replace('\'', "''");
+    let init_sql = format!(
+        "PRAGMA key = '{escaped}';\n\
+         PRAGMA journal_mode=WAL;\n\
+         PRAGMA foreign_keys=ON;\n\
+         PRAGMA busy_timeout=5000;\n\
+         PRAGMA synchronous=NORMAL;\n\
+         PRAGMA temp_store=MEMORY;"
+    );
+    let manager = SqliteConnectionManager::file(db_path)
+        .with_init(move |conn| conn.execute_batch(&init_sql));
+    Pool::builder()
+        .max_size(4)
+        .build(manager)
+        .map_err(|e| AppError::Database(e.to_string()))
+}
+
+/// Try opening the DB with password; returns true if the key is correct.
+fn try_open(path: &Path, password: &str) -> Result<bool> {
+    let conn = Connection::open(path)
+        .map_err(|e| AppError::Database(e.to_string()))?;
+    let escaped = password.replace('\'', "''");
+    conn.execute_batch(&format!("PRAGMA key = '{escaped}';"))
+        .map_err(|e| AppError::Database(e.to_string()))?;
+    Ok(conn
+        .query_row("SELECT count(*) FROM sqlite_master", [], |r| r.get::<_, i64>(0))
+        .is_ok())
 }
 
 fn is_plain_sqlite(path: &Path) -> bool {
@@ -77,24 +166,25 @@ fn is_plain_sqlite(path: &Path) -> bool {
     magic.as_slice() == SQLITE_MAGIC
 }
 
-fn migrate_to_cipher(db_path: &Path, key: &str) -> Result<()> {
-    let temp_path = db_path.with_extension("db.tmp");
-    // Forward slashes required in SQLite URI paths on Windows
-    let temp_str = temp_path.to_string_lossy().replace('\\', "/");
-
-    // Open plain DB (no PRAGMA key = passthrough mode).
-    // ATTACH an encrypted destination and use sqlcipher_export() to copy all data.
-    // This is the canonical SQLCipher API for encrypting a plain SQLite file.
-    let conn = Connection::open(db_path)
+/// Migrate DB encrypted with random hex device key → passphrase via sqlcipher_export.
+fn migrate_from_device_key(path: &Path, device_key: &str, password: &str) -> Result<()> {
+    let conn = Connection::open(path)
         .map_err(|e| AppError::Database(e.to_string()))?;
+    conn.execute_batch(&format!("PRAGMA key = \"x'{device_key}'\";"))
+        .map_err(|e| AppError::Database(e.to_string()))?;
+    // Validate device key is correct before proceeding
+    conn.query_row("SELECT count(*) FROM sqlite_master", [], |r| r.get::<_, i64>(0))
+        .map_err(|_| AppError::Database("device key mismatch".into()))?;
+    // Export to temp file encrypted with passphrase
+    let temp_path = path.with_extension("db.tmp");
+    let temp_str = temp_path.to_string_lossy().replace('\\', "/");
+    let escaped = password.replace('\'', "''");
     conn.execute_batch(&format!(
-        "ATTACH DATABASE '{temp_str}' AS encrypted KEY \"x'{key}'\";\
-         SELECT sqlcipher_export('encrypted');\
-         DETACH DATABASE encrypted;"
-    )).map_err(|e| AppError::Database(format!("cipher export: {e}")))?;
+        "ATTACH DATABASE '{temp_str}' AS migrated KEY '{escaped}';\
+         SELECT sqlcipher_export('migrated');\
+         DETACH DATABASE migrated;"
+    )).map_err(|e| AppError::Database(format!("migrate export: {e}")))?;
     drop(conn);
-
-    // Atomic swap: replace plain original with encrypted copy
-    std::fs::rename(&temp_path, db_path)?;
+    std::fs::rename(&temp_path, path)?;
     Ok(())
 }
