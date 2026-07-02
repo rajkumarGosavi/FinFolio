@@ -455,4 +455,11 @@ onMounted(() => {
 .tax-disclaimer { font-size: 0.75rem; margin: 0.75rem 0 0; color: var(--p-text-muted-color); font-style: italic; }
 
 .gains-table { margin-top: 0.5rem; }
+
+@media (max-width: 639px) {
+    .chart-card, .gains-card, .tax-panel { padding: 1rem; }
+    .chart-wrap { height: 220px; }
+    .gains-value { font-size: 1.25rem; }
+    .gains-card { min-width: 100%; }
+}
 </style>

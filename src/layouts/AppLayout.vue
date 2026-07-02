@@ -190,7 +190,7 @@ watch(route, () => { drawerOpen.value = false; });
 <style scoped>
 .app-shell {
     display: flex;
-    height: 100vh;
+    height: 100dvh;
     overflow: hidden;
 }
 
@@ -201,7 +201,7 @@ watch(route, () => { drawerOpen.value = false; });
     min-width: 220px;
     transition: width 0.2s ease, min-width 0.2s ease;
     overflow: hidden;
-    background: var(--p-surface-card);
+    background: var(--p-content-background);
     border-right: 1px solid var(--p-content-border-color);
 }
 
@@ -297,7 +297,7 @@ watch(route, () => { drawerOpen.value = false; });
         padding: 0 0.75rem;
         height: 52px;
         flex-shrink: 0;
-        background: var(--p-surface-card);
+        background: var(--p-content-background);
         border-bottom: 1px solid var(--p-content-border-color);
         position: sticky;
         top: 0;

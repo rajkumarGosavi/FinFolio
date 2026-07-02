@@ -85,4 +85,18 @@ body {
     .page-title {
         font-size: 1.2rem !important;
     }
+
+    /* Dialog forms: stack side-by-side field pairs */
+    .field-row {
+        flex-direction: column;
+    }
+
+    /* DataTables: denser cells so more columns fit before scrolling */
+    .p-datatable {
+        font-size: 0.8rem;
+    }
+    .p-datatable .p-datatable-thead > tr > th,
+    .p-datatable .p-datatable-tbody > tr > td {
+        padding: 0.5rem 0.5rem;
+    }
 }

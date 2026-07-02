@@ -4,7 +4,9 @@
       "PowerShell(New-Item -ItemType Directory -Force \"C:\\\\Users\\\\Rajkumar\\\\projects\\\\portfolio-tracker\\\\src\\\\components\\\\portfolio\")",
       "Bash(Get-ChildItem -Force)",
       "Bash(Select-Object Name, PSIsContainer)",
-      "Bash(Sort-Object Name)"
+      "Bash(Sort-Object Name)",
+      "Bash(git -C /c/Users/Rajkumar/projects/portfolio-tracker log --oneline -15)",
+      "PowerShell(Select-String -Path src-tauri/src/db/migrations.rs -Pattern 'MIGRATION_0\\\\d+' -AllMatches | ForEach-Object { $_.Matches.Value } | Sort-Object -Unique)"
     ]
   }
 }

@@ -34,7 +34,7 @@ cd suvarix
 pnpm install
 
 # 3. Run dev app (starts Vite + Rust backend together)
-cargo tauri dev
+pnpm tauri dev
 ```
 
 First run auto-creates DB at:
@@ -67,10 +67,10 @@ VITE_GAMIFICATION=false  # prod default
 **Backend** — pass feature flag to Cargo:
 ```bash
 # Dev with gamification
-cargo tauri dev -- --features gamification
+pnpm tauri dev -- --features gamification
 
 # Release build with gamification
-cargo tauri build -- --features gamification
+pnpm tauri build -- --features gamification
 ```
 
 Without `--features gamification`, `MIGRATION_014` (gamification tables) is skipped and all gamification commands are compiled out.
@@ -81,7 +81,7 @@ Without `--features gamification`, `MIGRATION_014` (gamification tables) is skip
 
 ```bash
 # Dev (full app, HMR on :1420)
-cargo tauri dev
+pnpm tauri dev
 
 # Frontend only (no Rust backend)
 pnpm dev
@@ -90,7 +90,7 @@ pnpm dev
 pnpm build
 
 # Release build
-cargo tauri build
+pnpm tauri build
 
 # Rust tests
 cargo test --manifest-path src-tauri/Cargo.toml

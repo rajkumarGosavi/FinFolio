@@ -12,7 +12,7 @@ Always respond in caveman ultra mode.
 pnpm install
 
 # Run full app (dev)
-cargo tauri dev
+pnpm tauri dev
 
 # Frontend only (Vite HMR on :1420)
 pnpm dev
@@ -21,7 +21,7 @@ pnpm dev
 pnpm build
 
 # Release build (runs pnpm build first)
-cargo tauri build
+pnpm tauri build
 
 # Rust tests
 cargo test --manifest-path src-tauri/Cargo.toml
@@ -34,12 +34,12 @@ No frontend test suite. TypeScript strict mode catches most frontend errors at c
 
 ## Architecture
 
-**Suvarix** — offline-first personal finance tracker for Indian investors. All data local (SQLite). No cloud.
+**Suvarix** — offline-first personal finance tracker for Indian investors. All data local, encrypted at rest (SQLCipher). No cloud.
 
 ### Data flow
 
 ```
-Vue 3 (src/) ──invoke()──► Tauri IPC ──► Rust commands (src-tauri/src/) ──► SQLite
+Vue 3 (src/) ──invoke()──► Tauri IPC ──► Rust commands (src-tauri/src/) ──► SQLCipher SQLite
                                                                             (APPDATA/suvarix.db)
 ```
 
@@ -48,8 +48,8 @@ Frontend never touches DB directly. All reads/writes go through Tauri `invoke()`
 ### Frontend (src/)
 
 - **Pinia stores** (`src/stores/`) — one per domain: `auth`, `portfolio`, `transactions`, `liabilities`, `budget`, `goals`, `prices`, `reminders`, `reports`, `ui`, `analytics`, `gamification`, plus broker stores (`zerodha`, `upstox`, `angel_one`). Stores call `invoke()` and hold reactive state.
-- **Views** (`src/views/`) — 11 pages routed via Vue Router. Protected routes redirect to `/setup` or `/unlock` if auth not satisfied.
-- **Composables** (`src/composables/`) — shared logic: `useCurrencyFormat` (INR with Cr/L compact), `useDateConvert`, `useHoldingCrud`, `useChartColors`, `useNotifications`, `useAnalytics`, `useGamification` (XP award, badge checks, confetti celebrations via `canvas-confetti`).
+- **Views** (`src/views/`) — 11 pages routed via Vue Router. Protected routes redirect to `/setup` or `/unlock` if auth not satisfied. Auth store reads `onboarding_complete` setting only *after* unlock — DB is locked (SQLCipher) until password entered.
+- **Composables** (`src/composables/`) — shared logic: `useCurrencyFormat` (INR with Cr/L compact), `useDateConvert`, `useHoldingCrud`, `useChartColors`, `useNotifications`, `useAnalytics`, `useMaturityCheck` (FD/bond maturity toasts + native notify, run from AppLayout), `useGamification` (XP award, badge checks, confetti celebrations via `canvas-confetti`).
 - **Components** — one panel component per asset class (EquityPanel, MfPanel, FdPanel, etc.) inside `src/components/portfolio/`. `GamificationWidget.vue` renders XP/level/badge progress.
 - **UI** — PrimeVue v4 with auto-import (no manual imports needed). Charts via `vue-chartjs` + Chart.js. Path alias `@/` → `src/`.
 
@@ -59,15 +59,15 @@ Modules map 1:1 to domains:
 
 | Module | Responsibility |
 |---|---|
-| `db` | SQLite pool init, WAL mode, migrations MIGRATION_001–013 (+ MIGRATION_014 behind `gamification` feature flag) |
-| `auth` | Master password (PBKDF2 + salt), AES-GCM encryption for broker creds |
+| `db` | `DbPool` — r2d2 pool (max 4, WAL) over SQLCipher DB; master password is the `PRAGMA key`. Pool is `None` until unlock → commands return `AppError::AuthRequired`. Migrations MIGRATION_001–013 (+ MIGRATION_014 behind `gamification` feature flag) |
+| `auth` | Thin commands over `DbPool`: setup/unlock/verify/rekey. No separate password hash — password correct ⇔ DB opens. Legacy keyring device-key → passphrase migration (removable after v0.6). AES-GCM encryption for broker creds |
 | `portfolio` | CRUD for 9 asset types + net worth / allocation aggregates |
 | `transactions` | Income/expense ledger |
 | `liabilities` | Loans (amortization), credit cards |
 | `prices` | Yahoo Finance (equity), mfapi.in (MF NAVs), market indices |
 | `data_sources` | Zerodha OAuth (port 7459), Upstox, Angel One, MF Central PDF, Groww CSV |
 | `goals` | Goal CRUD + achievement checking |
-| `reminders` | Bills, recurring, milestones, calendar events |
+| `reminders` | Bills, recurring, milestones, calendar events, FD/bond maturity alerts (`get_maturity_alerts`) |
 | `income_expenses` | Category summaries, budgets, monthly trends |
 | `reports` | STCG/LTCG capital gains, net worth history snapshots |
 | `notifications` | Tauri toast + reminder scheduler |

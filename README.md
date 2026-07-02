@@ -2,24 +2,30 @@
 
 A privacy-first, offline-first desktop app for Indian investors. Track all your assets, liabilities, income, and expenses in one place — everything stays on your device.
 
+See the [Roadmap](ROADMAP.md) for what's planned through mid-2027.
+
 ---
 
 ## Installation
 
-1. Download `Suvarix_0.1.0_x64-setup.exe` from the link shared with you.
+1. Download the latest `Suvarix_x64-setup.exe` from the link shared with you.
 2. Double-click the installer.
 3. If Windows shows a blue **"Windows protected your PC"** warning, click **More info → Run anyway**. This appears because the app is unsigned (normal for personal/beta software).
 4. Follow the installer steps. Suvarix installs to `%LOCALAPPDATA%\Suvarix`.
+
+After install, Suvarix checks for updates automatically and prompts you to install new versions in-app — no need to re-download the installer.
 
 ---
 
 ## First Launch — Master Password
 
-On first launch you'll be asked to create a **master password**. This password locks the app when you're away. Your financial data is protected by this password.
+On first launch you'll be asked to create a **master password**. This password is the encryption key for your database — the entire database file is encrypted at rest (SQLCipher, AES-256). Without the password the file is unreadable.
 
 - Minimum 8 characters.
-- If you forget it, data cannot be recovered — there is no reset.
-- You can change it later in **Settings → Security**.
+- If you forget it, data cannot be recovered — there is no reset. The database cannot be decrypted without it.
+- You can change it later in **Settings → Security** (the database is re-encrypted with the new key).
+
+After setting the password, a short **onboarding wizard** walks you through the main features. You can skip it and revisit features at your own pace.
 
 ---
 
@@ -34,8 +40,10 @@ The sidebar on the left contains all sections:
 | Goals | Financial goals with progress tracking |
 | Transactions | Income and expense ledger |
 | Liabilities | Loans and credit cards |
+| Reminders | Bills, recurring payments, net-worth milestones |
+| Calendar | Month view of bills, SIPs, and FD/bond maturities |
 | Income & Expenses | Category budgets and monthly trends |
-| Data Sources | Import from Zerodha or MF Central |
+| Data Sources | Import from Zerodha, Upstox, Angel One, Groww, MF Central, or CSV |
 | Reports | Capital gains and net worth history |
 | Settings | Security, appearance, diagnostics |
 
@@ -87,7 +95,11 @@ Add MF holdings manually or import via MF Central CAS (see Data Sources).
 
 ### Fixed Deposits
 
-Track FDs across banks. Enter the principal, interest rate, start date, and maturity date. Maturity value is calculated automatically.
+Track FDs across banks. Enter the principal, interest rate, start date, and maturity date. Maturity value is calculated automatically. The app alerts you when an FD is maturing (30-day, 7-day, and matured notifications) and shows maturities on the Calendar.
+
+### Bonds
+
+Track government bonds, corporate bonds, and debentures. Enter issuer, bond type, face value, quantity, coupon rate, and maturity date. Maturity alerts work the same as FDs.
 
 ### PPF / EPF
 
@@ -165,6 +177,8 @@ Track credit card balances, credit limits, and due dates.
 ---
 
 ## Data Sources
+
+Broker connections: **Zerodha** (OAuth), **Upstox** (OAuth), **Angel One** (SmartAPI + TOTP). Each syncs equity holdings directly into your portfolio. File imports: **MF Central CAS** (PDF), **Groww** (CSV), and a generic **Holdings CSV Import** dialog that works for every asset type. See the [User Guide](USER_GUIDE.md) for full setup steps.
 
 ### Zerodha Kite
 
@@ -259,9 +273,9 @@ Suvarix records usage events, errors, and page load times locally — nothing is
 
 ## Privacy
 
-- All data is stored in a local SQLite database on your device.
+- All data is stored in a local SQLite database on your device, encrypted at rest with SQLCipher (AES-256). Your master password is the encryption key.
 - No data is ever sent to any server or cloud service.
-- Zerodha API credentials are stored only in your local database.
+- Broker API credentials are stored only in your local (encrypted) database, additionally encrypted with AES-GCM.
 - Diagnostic data (if you choose to export and share it) is entirely under your control.
 
 ---

@@ -1,6 +1,6 @@
 # Suvarix — User Guide
 
-Suvarix is a privacy-first personal finance desktop app for Indian investors. All data is stored locally on your device — nothing is ever sent to the cloud.
+Suvarix is a privacy-first personal finance desktop app for Indian investors. All data is stored locally on your device in an encrypted database (SQLCipher) — nothing is ever sent to the cloud.
 
 ---
 
@@ -14,9 +14,10 @@ Suvarix is a privacy-first personal finance desktop app for Indian investors. Al
 6. [Liabilities](#6-liabilities)
 7. [Income & Expenses](#7-income--expenses)
 8. [Data Sources](#8-data-sources)
-9. [Reports](#9-reports)
-10. [Settings](#10-settings)
-11. [Security & Privacy](#11-security--privacy)
+9. [Reminders & Calendar](#9-reminders--calendar)
+10. [Reports](#10-reports)
+11. [Settings](#11-settings)
+12. [Security & Privacy](#12-security--privacy)
 
 ---
 
@@ -24,9 +25,11 @@ Suvarix is a privacy-first personal finance desktop app for Indian investors. Al
 
 ### Installation
 
-1. Download `Suvarix_0.1.0_x64-setup.exe` from the link shared with you.
+1. Download the latest `Suvarix_x64-setup.exe` from the link shared with you.
 2. Double-click the installer and follow the steps.
 3. If Windows shows a blue **"Windows protected your PC"** warning, click **More info → Run anyway**. This is expected for unsigned personal software.
+
+Suvarix checks for updates automatically and offers to install new versions in-app.
 
 ### First Launch — Set Master Password
 
@@ -36,7 +39,11 @@ When you open Suvarix for the first time you will see the **Setup** screen.
 2. Re-enter it to confirm.
 3. Click **Set Password**.
 
-> Your master password protects your database. Write it down and store it safely — it cannot be recovered if forgotten.
+> Your master password is the encryption key for your database (SQLCipher, AES-256). Write it down and store it safely — if forgotten, the database cannot be decrypted and your data cannot be recovered.
+
+### First-Run Onboarding
+
+After setting your password, a short onboarding wizard introduces the main sections of the app. You can complete it or click **Skip** — either way it only appears once.
 
 ### Unlocking the App
 
@@ -52,12 +59,14 @@ The left sidebar contains all main sections:
 | Icon | Section | Purpose |
 |---|---|---|
 | Home | Dashboard | Net worth overview and market pulse |
-| Briefcase | Portfolio | Holdings across all 8 asset classes |
+| Briefcase | Portfolio | Holdings across all 9 asset classes |
 | Flag | Goals | Financial goals with progress tracking |
 | List | Transactions | Full transaction log |
 | Credit Card | Liabilities | Loans and credit cards |
+| Bell | Reminders | Bills, recurring payments, net-worth milestones |
+| Calendar | Calendar | Month view of bills, SIPs, and FD/bond maturities |
 | Wallet | Income & Expenses | Budget tracking and category trends |
-| Database | Data Sources | Import from Zerodha / MF Central + price refresh |
+| Database | Data Sources | Broker sync (Zerodha/Upstox/Angel One), CAS & CSV imports, price refresh |
 | Chart | Reports | Net worth history and capital gains |
 | Cog | Settings | Security, backup, diagnostics, and preferences |
 
@@ -178,6 +187,8 @@ The table shows the **Next SIP date** computed from the debit day and frequency.
 | Maturity Amount | Expected amount at maturity (₹) |
 | Cumulative | Toggle (cumulative = no periodic payout) |
 
+> Suvarix alerts you when an FD approaches maturity — an info toast at 30 days, warning at 7 days, and a "matured" alert (with native notification) once the date passes. Maturities also appear on the [Calendar](#9-reminders--calendar).
+
 ---
 
 ### 3.4 PPF / EPF / NPS
@@ -236,7 +247,29 @@ Tracks provident fund and pension accounts.
 
 ---
 
-### 3.8 Insurance
+### 3.8 Bonds
+
+Tracks government bonds, corporate bonds, and debentures.
+
+| Field | Description |
+|---|---|
+| Issuer Name | e.g. HDFC Ltd., Government of India |
+| Bond Type | government, corporate, etc. |
+| ISIN | 12-character ISIN (optional) |
+| Credit Rating | AAA, AA+, … (optional) |
+| Face Value | Face value per bond (₹) |
+| Quantity | Number of bonds/units |
+| Purchase Price | Your cost per bond (₹) |
+| Current Price | Market price per bond (₹, optional) |
+| Coupon Rate | Annual coupon (%) |
+| Coupon Frequency | Payout frequency |
+| Purchase / Maturity Date | Holding period |
+
+The table shows invested value, current value, P&L, days to maturity, and rating. Bond maturities trigger the same 30-day / 7-day / matured alerts as FDs and appear on the Calendar.
+
+---
+
+### 3.9 Insurance
 
 | Field | Description |
 |---|---|
@@ -446,7 +479,36 @@ Click **Disconnect** to remove your API credentials and access token from the ap
 
 ---
 
-### 8.2 MF Central CAS — Mutual Fund Import
+### 8.2 Upstox — Equity Import
+
+Same pattern as Zerodha, using the Upstox API v2 (free tier available).
+
+1. Create an app at the Upstox developer portal and set the redirect URL to `http://127.0.0.1:7460`.
+2. In Suvarix → Data Sources → Upstox: paste the API key and secret, click **Save & Connect**, and log in on the browser page that opens.
+3. Click **Sync Holdings** to import your equity positions.
+
+---
+
+### 8.3 Angel One — Equity Import
+
+Uses the free Angel One SmartAPI. No browser redirect — you log in directly in the app.
+
+1. Create a SmartAPI app at [smartapi.angelbroking.com](https://smartapi.angelbroking.com) to get an API key.
+2. In Suvarix → Data Sources → Angel One: enter your API key, client ID, PIN, and TOTP secret.
+3. Click **Login**, then **Sync Holdings**.
+
+---
+
+### 8.4 Groww & Holdings CSV Import
+
+- **Groww** — export your holdings CSV from Groww and upload it in Data Sources. The parser maps Groww columns automatically.
+- **Holdings CSV Import** — a generic import dialog that works for **every asset type** (equity, MF, FD, bonds, gold, crypto, …). Upload any CSV, map its columns to Suvarix fields in the preview, and import. Useful for spreadsheets or brokers without a direct integration.
+
+> Multi-broker equity: holdings from different brokers are grouped by ISIN in the Equity tab, with a per-broker breakdown you can expand on each row.
+
+---
+
+### 8.5 MF Central CAS — Mutual Fund Import
 
 Import all your mutual fund holdings from an MF Central Consolidated Account Statement PDF.
 
@@ -488,7 +550,7 @@ Uploading both together gives you the best of both: correct ISINs **and** correc
 
 ---
 
-### 8.3 Price Refresh
+### 8.6 Price Refresh
 
 #### Equity Prices
 
@@ -507,7 +569,31 @@ Requires the **Scheme Code** to be set on each MF holding. Holdings imported via
 
 ---
 
-## 9. Reports
+## 9. Reminders & Calendar
+
+### Reminders
+
+Keeps you on top of recurring obligations. Three panels:
+
+- **Bills** — add a bill with name, amount, and due date. Click **Mark Paid** when settled — a matching transaction is recorded automatically.
+- **Recurring transactions** — define repeating income/expense entries (rent, salary, subscriptions). When items fall due, select them and click **Apply** to record them into the Transactions ledger in one step.
+- **Milestones** — set net-worth milestones (e.g. ₹50L). You get a toast + native notification when your net worth crosses one.
+
+### Calendar
+
+A month view that plots all date-driven items in one place, colour-coded by type:
+
+- Bill due dates
+- SIP debit dates
+- Recurring transactions
+- **FD maturities** (amber) and **bond maturities** (purple)
+- Goal target dates and milestones
+
+Click any day to see its events. Maturity alerts (30-day / 7-day / matured) fire automatically when the app is open — see [Fixed Deposits](#33-fixed-deposits-fd).
+
+---
+
+## 10. Reports
 
 Two report tabs: **Net Worth History** and **Capital Gains**.
 
@@ -564,7 +650,7 @@ Click **Export CSV** to save the full gain/loss transactions table.
 
 ---
 
-## 10. Settings
+## 11. Settings
 
 ### Security
 
@@ -572,7 +658,7 @@ Click **Export CSV** to save the full gain/loss transactions table.
 
 1. Enter your **current password**.
 2. Enter and confirm the **new password** (minimum 8 characters).
-3. Click **Change Password**.
+3. Click **Change Password**. The database is re-encrypted with the new key.
 
 #### Auto-lock
 
@@ -651,15 +737,15 @@ Shows app name, version, data directory path, and privacy statement. The data di
 
 ---
 
-## 11. Security & Privacy
+## 12. Security & Privacy
 
 ### Local-Only Storage
 
-All data is stored in a single SQLite database file on your computer. Suvarix makes no network requests except when you explicitly click a price refresh, market indices fetch, or Zerodha sync button.
+All data is stored in a single SQLite database file on your computer, **encrypted at rest with SQLCipher (AES-256)**. Suvarix makes no network requests except when you explicitly click a price refresh, market indices fetch, or broker sync button.
 
 ### Master Password
 
-Required every time you open the app and after an auto-lock timeout. Never stored in plain text or transmitted anywhere.
+Your master password **is the database encryption key** — the database file cannot be opened without it. It is required every time you open the app and after an auto-lock timeout. It is never stored anywhere (in any form) or transmitted; changing it re-encrypts the database with the new key.
 
 ### Database Location
 
@@ -685,15 +771,19 @@ Suvarix does not automatically back up your data. Set a reminder to use **Settin
 | Task | Where |
 |---|---|
 | Add a stock holding | Portfolio → Equity → Add Equity |
-| Import equity from Zerodha | Data Sources → Zerodha → Sync Holdings |
+| Import equity from a broker | Data Sources → Zerodha / Upstox / Angel One → Sync Holdings |
+| Import holdings from any CSV | Data Sources → Holdings CSV Import |
 | Add a mutual fund manually | Portfolio → Mutual Funds → Add MF |
 | Import MF from MF Central CAS | Data Sources → MF Central CAS |
+| Add a bond | Portfolio → Bonds → Add Bond |
 | Set up a SIP | Portfolio → Mutual Funds → SIP Schedules → Add SIP |
 | Add a financial goal | Goals → Add Goal |
 | Record an expense | Transactions → Add Transaction (Type: expense) |
 | Add a home loan | Liabilities → Loans → Add Loan |
 | View loan EMI schedule | Liabilities → Loans → calendar icon on the row |
 | Set a monthly budget | Income & Expenses → Budget Manager → pencil icon |
+| Track a bill or recurring payment | Reminders → Bills / Recurring |
+| See upcoming maturities and dues | Calendar |
 | Refresh stock prices | Data Sources → Equity → Refresh Prices |
 | Refresh MF NAV | Data Sources → Mutual Funds → Refresh NAVs |
 | View capital gains | Reports → Capital Gains tab |

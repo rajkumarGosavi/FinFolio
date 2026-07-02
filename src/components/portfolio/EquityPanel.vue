@@ -283,6 +283,7 @@ function brokerSeverity(brokerName: string): string {
     margin: 0 0 0.25rem;
     padding: 0.5rem 1rem 0.5rem 2rem;
     border-radius: 0 0 6px 6px;
+    overflow-x: auto;
 }
 
 .breakdown-table {

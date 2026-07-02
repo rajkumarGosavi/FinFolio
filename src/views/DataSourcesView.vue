@@ -1486,6 +1486,7 @@ function formatTime(iso: string | null): string {
     .import-grid { grid-template-columns: 1fr; }
     .indices-row { flex-direction: column; }
     .reconnect-row, .sync-row { flex-direction: column; gap: 1rem; }
+    .cas-file-row { grid-template-columns: 1fr; }
 }
 
 /* Broker CSV redirect hint */

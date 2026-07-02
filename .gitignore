@@ -40,3 +40,6 @@ seed.mjs
 
 # Plan files
 i-want-to-build-replicated-blossom.md
+*.keystore
+*.local.*
+ROADMAP.md
