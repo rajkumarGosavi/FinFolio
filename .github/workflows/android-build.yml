@@ -43,6 +43,9 @@ jobs:
       - name: Install frontend deps
         run: pnpm install --frozen-lockfile
 
+      - name: Generate Android project skeleton
+        run: pnpm tauri android init
+
       - name: Build Android debug APK
         run: pnpm tauri android build --debug --target x86_64
 
